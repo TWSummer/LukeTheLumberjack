@@ -4,6 +4,11 @@
   "private": true,
   "type": "module",
   "description": "A cozy browser woodland adventure, made with Canvas and a little grit.",
-  "scripts": { "start": "node server.js", "dev": "node server.js", "test": "node --test tests/*.test.js" },
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node server.js",
+    "test": "node --test tests/*.test.js",
+    "build": "node scripts/build-pages.js"
+  },
   "engines": { "node": ">=20" }
 }

@@ -12,6 +12,40 @@ node server.js
 
 Open http://localhost:3000. `PORT` changes the server port. All game files can also be served by a static host. The optional Google Fonts stylesheet has system-font fallbacks.
 
+## Deploy to GitHub Pages
+
+The game is entirely client-side: GitHub Pages can serve it without running `server.js`, installing dependencies, or setting up a database. The included `.github/workflows/deploy-pages.yml` tests the game, builds a static `dist/` directory, and publishes it after each push to `main`. HTML asset paths and JavaScript imports are relative, so the game also works under `/LukeTheLumberjack/`.
+
+### One-time setup
+
+1. Open [this repository's Pages settings](https://github.com/TWSummer/LukeTheLumberjack/settings/pages).
+2. Under **Build and deployment → Source**, choose **GitHub Actions**. Skip the suggested workflow templates; this project already includes its workflow. See [GitHub's publishing-source instructions](https://docs.github.com/en/pages/getting-started-with-github-pages/configuring-a-publishing-source-for-your-github-pages-site).
+3. Commit and push the deployment files from this project to `main`:
+
+   ```sh
+   git add .github/workflows/deploy-pages.yml scripts/build-pages.js .gitignore index.html package.json README.md
+   git commit -m "Set up GitHub Pages deployment"
+   git push origin main
+   ```
+
+4. Open the repository's [Actions tab](https://github.com/TWSummer/LukeTheLumberjack/actions) and wait for **Deploy game to GitHub Pages** to finish successfully. If you pushed before enabling Pages, choose that workflow, then **Run workflow → main → Run workflow** to try again.
+5. Play at **https://TWSummer.github.io/LukeTheLumberjack/**. The successful deployment and **Settings → Pages** also show the published URL. The site is not live until the first deployment succeeds.
+
+Future pushes to `main` redeploy automatically after the tests pass. No personal access token, custom secret, separate `gh-pages` branch, or generated `dist/` commit is needed. The workflow uses GitHub's built-in token and Pages deployment actions. If Pages is unavailable in settings, check the repository's visibility and your plan: public repositories support Pages on GitHub Free; private repositories require an eligible paid plan.
+
+### Saves on the hosted site
+
+The save format and key remain unchanged. Updates at the same site address preserve existing browser saves. However, saves are local to each browser and website origin: `localhost:3000` and `https://TWSummer.github.io` have separate storage. Your localhost adventure stays intact, but it does **not automatically appear on GitHub Pages**. The current game does not have a save import/export interface or cloud sync. See [how browser local storage is scoped](https://developer.mozilla.org/en-US/docs/Web/API/Window/localStorage).
+
+### Build locally
+
+```sh
+node --test tests/*.test.js
+node scripts/build-pages.js
+```
+
+If npm is available, `npm test` and `npm run build` are equivalent. `dist/` contains only `index.html`, `styles.css`, `favicon.svg`, `src/`, and a `.nojekyll` marker. The build recreates this generated directory; do not edit it by hand. Serve it using any static HTTP server. The normal `node server.js` development command still serves the source project at port 3000.
+
 ## Controls
 
 - **WASD / arrows:** walk. **Shift:** move faster.

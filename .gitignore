@@ -1,0 +1,2 @@
+# Generated static website; GitHub Actions rebuilds this on every deployment.
+/dist/
