@@ -62,6 +62,19 @@ If npm is available, `npm test` and `npm run build` are equivalent. `dist/` cont
 
 The canvas fills the viewport. HUD elements are overlays. The page itself never scrolls; long inventory and crafting panels scroll internally and follow keyboard focus.
 
+### Playing on a phone
+
+Open the same game URL in your phone's browser. Touch controls appear automatically on touchscreens, and both portrait and landscape layouts are supported. There is no separate mobile game: the world, visuals, progression, quests, crafting jobs, and building rules are the same. Keyboard and mouse controls remain available, including on devices with both a keyboard and a touchscreen.
+
+- **Walk:** tap open ground, or hold and slide the thumbstick in any direction. Small stick movements give fine control. Tap **Run** to toggle faster travel.
+- **Chop / Mine:** tap a nearby resource or its action button once to keep working on that resource. It stops when depleted, when your tool/stamina cannot continue, or when you tap **Stop**, move, change targets, or open a menu. It never starts harvesting a different resource automatically.
+- **Interact / Use / Talk / Gather:** the right-hand button changes to match the highlighted object. Tap **Next target** to reach nearby objects or overlapping house pieces.
+- **Craft:** visit your tent or a workstation and tap **Use**. Tap a recipe to load materials, leave it running, then return and collect the output. Workstations and tool service retain all their normal rules.
+- **Build:** collect a kit or open **Packed kits**. Tap or drag the outline onto clear ground, then tap **Place**. Nudge arrows, **Rotate**, and **Grid on/off** give the same precision as keyboard placement. The thumbstick still moves Luke while placing. Cancelling a new kit keeps it packed; cancelling a move leaves the original piece in place.
+- **Other controls:** Map, Journal, Backpack, Packed kits, Berries, and zoom **− / +** are onscreen. The pause menu includes sound, help, and a **Touch controls** setting: Automatic, Always show, or Hide.
+
+Menus scroll internally by swiping. Controls account for screen cutouts and the home indicator. Releasing or cancelling a stick gesture, opening a menu, rotating the screen, or leaving the browser stops movement. Touch preferences use a separate storage key; the version-4 adventure save is unchanged. Like desktop saves, phone saves stay in that browser and do not sync between devices.
+
 ## A connected world
 
 The surface world is 6,000 × 4,200 units with a camera that follows Luke. Pine Hollow, Whitmore’s Plot, Hemlock Ridge, Mosswater Brook, the Old Sugarbush, and the Forgotten Mill are neighborhoods in the same continuous map. Follow trails or walk off them; there are no travel buttons. A physical bunker hatch leads to a separate underground interior, and its stairs return to that same hatch.
@@ -138,6 +151,8 @@ Tests cover world connectivity rules, the physical crossing, resource and tool g
 
 For isolated browser testing, start a second server on port 3001 and open `/tests/open-world-playtest.html`, `/tests/story-playtest.html`, or `/tests/bunker-playtest.html`. Their visible controls seed test scenarios and hold keyboard inputs in the embedded game. The bunker fixture also resumes the original version-4 save fixture. The fixtures refuse to seed the normal port-3000 adventure.
 
+`/tests/mobile-playtest.html` offers full-screen touch scenarios for crafting, building, chopping, mining, gathering, and bunker salvage on `localhost:3001` only. Test portrait and landscape sizes, tap-only crafting and placement, target cycling, harvesting cancellation, and keyboard use with touch controls shown/hidden. Pointer tests cover diagonal speed, fine movement, multiple-finger ownership, release, cancellation, lost capture, and resets. Development fixtures are excluded from the Pages build.
+
 ## Source layout
 
 - `src/data.js`: tools, resources, recipes, stories, discoveries, and icons.
@@ -153,4 +168,5 @@ For isolated browser testing, start a second server on port 3001 and open `/test
 - `src/sprite-art.js` / `src/building-renderer.js`: procedural woodland, character, and structure art.
 - `src/ui.js`: keyboard panels, physical crafting, backpack, and kit placement.
 - `src/main.js`: collision, movement, input, harvesting, sound, and the game loop.
+- `src/touch-controls.js`: thumbstick pointer capture, touch detection/preferences, and contextual onscreen actions.
 - `styles.css`: full-screen HUD and responsive overlays.

@@ -7,11 +7,13 @@ import {createUI} from './ui.js';
 import {BUNKER,BUNKER_CACHES} from './story-data.js';
 import {bunkerInactive,canReachBunker,bunkerRoomAt} from './bunker-geometry.js';
 import {bunkerResourceBlock,strikeBunker,visitBunkerRoom} from './bunker.js';
+import {createTouchControls} from './touch-controls.js';
 const $=s=>document.querySelector(s);
 let storage;try{storage=localStorage;}catch{storage={getItem:()=>null,setItem:()=>{throw Error();}};}
-const state=loadState(storage),keys=new Set();let nodes=worldNodes(state),nearest=null,targetId=null,last=0,uiTimer=0,saveTimer=0,swingCooldown=0,actionTime=0,clickDestination=null,lastError='',errorAt=0,lastSaved=true,bannerTimer;
+const state=loadState(storage),keys=new Set();let nodes=worldNodes(state),nearest=null,targetId=null,last=0,uiTimer=0,saveTimer=0,swingCooldown=0,actionTime=0,clickDestination=null,lastError='',errorAt=0,lastSaved=true,bannerTimer,touch=null,autoHarvestId=null,worldPointer=null;
 const renderer=new Renderer($('#world'),state,nodes);
-const ui=createUI(state,renderer,{changed,toast,clearKeys:()=>{keys.clear();clickDestination=null;},playSound});
+const ui=createUI(state,renderer,{changed,toast,clearKeys:stopInput,playSound,controls:()=>touch});
+function stopInput(){keys.clear();clickDestination=null;autoHarvestId=null;worldPointer=null;touch?.reset();}
 $('#portrait').innerHTML=portraitSVG();$('#axe-icon').innerHTML=itemIcon('axe');$('#pick-icon').innerHTML=itemIcon('pickaxe');$('#kit-icon').innerHTML=itemIcon('workbench');$('#berry-icon').innerHTML=itemIcon('berries');
 function persist(){lastSaved=saveState(state,storage);$('#save-status').textContent=lastSaved?'Saved locally':'Saving unavailable';}
 function changed(rebuild=false){if(rebuild){nodes=worldNodes(state);renderer.nodes=nodes;targetId=null;nearest=null;ensurePlayerSpace();}persist();updateHUD();}
@@ -40,23 +42,33 @@ function updateHUD(){
  $('#axe-button').classList.toggle('active',state.equipped==='axe');$('#pick-button').classList.toggle('active',state.equipped==='pick');$('#equipped-name').textContent=toolAtBench(state,state.equipped)?'Tool at the workstation':state.equipped==='axe'?AXE_TIERS[state.axe].name:state.pick<0?'No pickaxe · make one at a workbench':PICK_TIERS[state.pick].name;
  $('#kits-button').title='Packed building kits [V] · '+Object.values(state.packed).reduce((a,n)=>a+n,0)+' packed';
  const html=targetHTML(nearest);$('#target-info').hidden=!nearest||!!ui.placement||!!ui.modal;if($('#target-info').innerHTML!==html)$('#target-info').innerHTML=html;
- drawMap($('#minimap'),state,true);
+ renderer.touchMode=!!touch?.enabled;touch?.update(nearest,autoHarvestId);drawMap($('#minimap'),state,true);
 }
 function rewards(reward){return Object.entries(reward).map(([k,n])=>'+'+n+' '+ITEMS[k].short).join(' · ');}
-function useResource(){
- const choices=nearby().filter(n=>['tree','rock','bunkerresource'].includes(n.type)),n=choices.find(n=>n.id===nearest?.id)||choices[0];if(!n)return;
+function useResource(preferredId=null){
+ const choices=nearby().filter(n=>['tree','rock','bunkerresource'].includes(n.type)),n=preferredId?choices.find(n=>n.id===preferredId):choices.find(n=>n.id===nearest?.id)||choices[0];if(!n)return false;
  const underground=n.type==='bunkerresource',tool=underground?n.tool:n.type==='tree'?'axe':'pick',result=underground?strikeBunker(state,n):strike(state,n);
- if(result.error){toast(result.error,'error');swingCooldown=.6;return;}
+ if(result.error){toast(result.error,'error');swingCooldown=.6;return false;}
  targetId=n.id;renderer.action={node:n};actionTime=.23;const gear=(tool==='axe'?AXE_TIERS:PICK_TIERS)[state[tool]];swingCooldown=gear.interval;
  renderer.burst(n.x,n.y,tool==='axe'?'#d0a76b':'#bec5a8',result.reward?20:5);playSound(tool==='axe'?'chop':'mine');
- if(result.reward){toast(rewards(result.reward),'reward');if(result.opened)banner('Passage cleared. You can walk through.');targetId=null;selectTarget();persist();}updateHUD();
+ if(result.reward){toast(rewards(result.reward),'reward');if(result.opened)banner('Passage cleared. You can walk through.');if(autoHarvestId===n.id)autoHarvestId=null;targetId=null;selectTarget();persist();}updateHUD();return true;
 }
+function cycleTarget(){autoHarvestId=null;clickDestination=null;const list=nearby(),i=list.findIndex(n=>n.id===nearest?.id);if(list.length)targetId=list[(i+1)%list.length].id;selectTarget();updateHUD();}
+function toggleHarvest(){
+ if(ui.modal||ui.placement)return;
+ if(autoHarvestId){autoHarvestId=null;updateHUD();return;}
+ if(!nearest||!['tree','rock','bunkerresource'].includes(nearest.type))return;
+ clickDestination=null;autoHarvestId=nearest.id;targetId=nearest.id;
+ if(swingCooldown===0&&!useResource(autoHarvestId))autoHarvestId=null;
+ updateHUD();
+}
+function zoomBy(delta){renderer.zoom=Math.max(.75,Math.min(1.8,renderer.zoom+delta));}
 function interact(n=nearest){
  if(!n||ui.modal||ui.placement)return;
  if(['bunker','bunkerexit','bunkercache','growtray','rareplant','bunkergate','bunkercontrol','bunkernote','bunkergarden'].includes(n.type)){ui.showStoryNode(n);return;}
  if(n.type==='bunkerresource'){const error=bunkerResourceBlock(state,n);toast(error||'Hold Space to '+(n.tool==='axe'?'cut this apart.':'mine this deposit.'),error?'error':'');return;}
  if(n.type==='structure'){ui.showStation(n.id);return;}if(n.type==='crossing'){ui.showBridge();return;}if(n.type==='npc'){ui.showPerson(n);return;}
- if(n.type==='sign'){ui.open('sign','Follow your curiosity.','The trails connect. The space between them is yours too.',`<p class="speech">${n.label.replaceAll('\n','<br>')}</p><p class="note">Press M to see where you stand. Walk with WASD to follow the trail.</p>`,'small');return;}
+ if(n.type==='sign'){ui.open('sign','Follow your curiosity.','The trails connect. The space between them is yours too.',`<p class="speech">${n.label.replaceAll('\n','<br>')}</p><p class="note">Open the map to see where you stand, then follow the trail.</p>`,'small');return;}
  if(n.type==='discovery'){const result=discover(state,n);if(result.error)return toast(result.error,'error');ui.open('discovery',DISCOVERIES[n.discovery].name,result.already?'A story you found.':'A little further from ordinary.',`<p class="speech">${result.text}</p>${result.reward?'<p class="note">Found '+rewards(result.reward)+'.</p>':''}${result.blueprint?'<p class="note">New designs: Millwright’s logging saw and Prospector’s pickaxe. Make them at a precision tool bench.</p>':''}`,'small');changed();return;}
  if(['tree','rock'].includes(n.type)){const error=resourceBlock(state,n);toast(error||'Hold Space to '+(n.type==='tree'?'chop this tree.':'mine this rock.'),error?'error':'');return;}
  const result=gather(state,n);if(result.error)return toast(result.error,'error');toast(rewards(result.reward),'reward');playSound('gather');targetId=null;changed();
@@ -65,28 +77,47 @@ function eat(){const result=consumeBerry(state);if(result.error)toast(result.err
 $('#axe-button').onclick=()=>{state.equipped='axe';updateHUD();};$('#pick-button').onclick=()=>{state.equipped='pick';updateHUD();};$('#bag-button').onclick=()=>{ui.cancelPlacement();ui.showBag('items');};$('#kits-button').onclick=()=>{ui.cancelPlacement();ui.showBag('kits');};$('#food-button').onclick=eat;$('#map-button').onclick=()=>{ui.cancelPlacement();ui.showMap();};$('#journal-button').onclick=()=>{ui.cancelPlacement();ui.showJournal();};$('#help-button').onclick=()=>{ui.cancelPlacement();ui.showHelp();};$('#settings-button').onclick=()=>{ui.cancelPlacement();ui.showSettings();};
 document.addEventListener('keydown',e=>{
  if(ui.modal){ui.menuKey(e);return;}if(ui.placementKey(e))return;
- const k=e.key.toLowerCase();if(['w','a','s','d','arrowup','arrowdown','arrowleft','arrowright',' ','shift'].includes(k)){e.preventDefault();keys.add(k);clickDestination=null;if(['w','a','s','d','arrowup','arrowdown','arrowleft','arrowright'].includes(k))targetId=null;}
+ const k=e.key.toLowerCase();if(['w','a','s','d','arrowup','arrowdown','arrowleft','arrowright',' ','shift'].includes(k)){e.preventDefault();keys.add(k);clickDestination=null;autoHarvestId=null;if(['w','a','s','d','arrowup','arrowdown','arrowleft','arrowright'].includes(k))targetId=null;}
  if(e.repeat)return;
- if(k==='e'){e.preventDefault();interact();}else if(k==='tab'){e.preventDefault();const list=nearby(),i=list.findIndex(n=>n.id===nearest?.id);if(list.length)targetId=list[(i+1)%list.length].id;selectTarget();updateHUD();}
+ if(k==='e'){e.preventDefault();interact();}else if(k==='tab'){e.preventDefault();cycleTarget();}
  else if(k==='1'||k==='2'){state.equipped=k==='1'?'axe':'pick';updateHUD();}else if(k==='b'){ui.cancelPlacement();ui.showBag('items');}else if(k==='v'){ui.cancelPlacement();ui.showBag('kits');}else if(k==='f')eat();else if(k==='m'){ui.cancelPlacement();ui.showMap();}else if(k==='j'){ui.cancelPlacement();ui.showJournal();}else if(k==='h'||k==='?'){ui.cancelPlacement();ui.showHelp();}else if(k==='escape'){ui.cancelPlacement();ui.showSettings();}else if(k==='='||k==='+')renderer.zoom=Math.min(1.8,renderer.zoom+.1);else if(k==='-')renderer.zoom=Math.max(.75,renderer.zoom-.1);
 });
-document.addEventListener('keyup',e=>keys.delete(e.key.toLowerCase()));window.addEventListener('blur',()=>{keys.clear();clickDestination=null;persist();});window.addEventListener('pagehide',persist);document.addEventListener('visibilitychange',()=>{if(document.hidden){keys.clear();clickDestination=null;persist();}});
-$('#world').addEventListener('pointerdown',e=>{if(ui.modal||e.button!==0)return;e.preventDefault();$('#world').focus({preventScroll:true});const p=renderer.toWorld(e.clientX,e.clientY);if(ui.placement){ui.point(p);return;}const n=nearby().sort((a,b)=>Math.hypot(a.x-p.x,a.y-p.y)-Math.hypot(b.x-p.x,b.y-p.y))[0];if(n&&Math.hypot(n.x-p.x,n.y-p.y)<70){targetId=n.id;selectTarget();interact(n);}else clickDestination=p;});
-document.querySelectorAll('[data-move]').forEach(b=>{b.onpointerdown=e=>{e.preventDefault();b.setPointerCapture(e.pointerId);keys.add(b.dataset.move);targetId=null;};b.onpointerup=b.onpointercancel=()=>keys.delete(b.dataset.move);});$('#touch-use').onclick=()=>interact();$('#touch-strike').onpointerdown=e=>{e.preventDefault();e.currentTarget.setPointerCapture(e.pointerId);keys.add(' ');};$('#touch-strike').onpointerup=$('#touch-strike').onpointercancel=()=>keys.delete(' ');
+document.addEventListener('keyup',e=>keys.delete(e.key.toLowerCase()));window.addEventListener('blur',()=>{stopInput();persist();});window.addEventListener('pagehide',()=>{stopInput();persist();});window.addEventListener('resize',stopInput);document.addEventListener('visibilitychange',()=>{if(document.hidden){stopInput();persist();}});
+function worldTap(e){
+ if(ui.modal)return;const p=renderer.toWorld(e.clientX,e.clientY);if(ui.placement){ui.point(p);return;}
+ const n=nearby().sort((a,b)=>Math.hypot(a.x-p.x,a.y-p.y)-Math.hypot(b.x-p.x,b.y-p.y))[0];
+ if(n&&Math.hypot(n.x-p.x,n.y-p.y)<70){
+  const wasWorking=autoHarvestId;autoHarvestId=null;targetId=n.id;clickDestination=null;selectTarget();
+  if(touch?.enabled&&['tree','rock','bunkerresource'].includes(n.type)){if(wasWorking!==n.id)toggleHarvest();else updateHUD();}else interact(n);
+ }else{autoHarvestId=null;targetId=null;clickDestination=p;}
+}
+$('#world').addEventListener('pointerdown',e=>{
+ if(ui.modal||e.button!==0||worldPointer)return;e.preventDefault();$('#world').focus({preventScroll:true});
+ if(!touch?.enabled&&e.pointerType==='mouse'){worldTap(e);return;}
+ worldPointer={id:e.pointerId,x:e.clientX,y:e.clientY,moved:false};$('#world').setPointerCapture(e.pointerId);
+ if(ui.placement)ui.point(renderer.toWorld(e.clientX,e.clientY));
+});
+$('#world').addEventListener('pointermove',e=>{if(e.pointerId!==worldPointer?.id)return;if(Math.hypot(e.clientX-worldPointer.x,e.clientY-worldPointer.y)>12)worldPointer.moved=true;if(ui.placement)ui.point(renderer.toWorld(e.clientX,e.clientY));});
+$('#world').addEventListener('pointerup',e=>{if(e.pointerId!==worldPointer?.id)return;const tap=!worldPointer.moved;worldPointer=null;if(tap)worldTap(e);});
+for(const name of ['pointercancel','lostpointercapture'])$('#world').addEventListener(name,e=>{if(e.pointerId===worldPointer?.id)worldPointer=null;});
+$('#world').addEventListener('contextmenu',e=>e.preventDefault());
+touch=createTouchControls({storage,move:()=>{clickDestination=null;autoHarvestId=null;targetId=null;},reset:()=>{clickDestination=null;autoHarvestId=null;worldPointer=null;},interact:()=>interact(),work:toggleHarvest,next:cycleTarget,zoom:zoomBy});
 let audioContext;
 function playSound(type){if(!state.sound)return;try{audioContext??=new AudioContext();audioContext.resume();const osc=audioContext.createOscillator(),gain=audioContext.createGain(),now=audioContext.currentTime;osc.type=type==='build'?'sine':'triangle';osc.frequency.setValueAtTime(type==='build'?640:type==='chop'?135:type==='mine'?370:800,now);osc.frequency.exponentialRampToValueAtTime(type==='build'?880:70,now+.12);gain.gain.setValueAtTime(.06,now);gain.gain.exponentialRampToValueAtTime(.001,now+.18);osc.connect(gain).connect(audioContext.destination);osc.start(now);osc.stop(now+.2);}catch{}}
 function frame(now){const dt=Math.min((now-last)/1000||0,.04);last=now;saveTimer+=dt;uiTimer+=dt;swingCooldown=Math.max(0,swingCooldown-dt);actionTime=Math.max(0,actionTime-dt);if(!actionTime)renderer.action=null;renderer.walking=false;
  if(!ui.modal){
   let dx=(keys.has('d')||keys.has('arrowright')?1:0)-(keys.has('a')||keys.has('arrowleft')?1:0),dy=(keys.has('s')||keys.has('arrowdown')?1:0)-(keys.has('w')||keys.has('arrowup')?1:0);
+  let strength=1;if(!dx&&!dy&&(touch.movement.x||touch.movement.y)){dx=touch.movement.x;dy=touch.movement.y;strength=Math.min(1,Math.hypot(dx,dy));}
   if(!dx&&!dy&&clickDestination&&!ui.placement){dx=clickDestination.x-state.player.x;dy=clickDestination.y-state.player.y;if(Math.hypot(dx,dy)<10){clickDestination=null;dx=dy=0;}}
-  if(dx||dy){const length=Math.hypot(dx,dy),speed=(keys.has('shift')?290:205)*dt;dx=dx/length*speed;dy=dy/length*speed;const old={...state.player};if(!blocked(state.player.x+dx,state.player.y))state.player.x+=dx;if(!blocked(state.player.x,state.player.y+dy))state.player.y+=dy;renderer.walking=Math.hypot(old.x-state.player.x,old.y-state.player.y)>.1;if(dx)renderer.facing=dx>0?1:-1;if(!renderer.walking)clickDestination=null;}
+  if(dx||dy){const length=Math.hypot(dx,dy),speed=(keys.has('shift')||touch.running?290:205)*dt*strength;dx=dx/length*speed;dy=dy/length*speed;const old={...state.player};if(!blocked(state.player.x+dx,state.player.y))state.player.x+=dx;if(!blocked(state.player.x,state.player.y+dy))state.player.y+=dy;renderer.walking=Math.hypot(old.x-state.player.x,old.y-state.player.y)>.1;if(dx)renderer.facing=dx>0?1:-1;if(!renderer.walking)clickDestination=null;}
   const region=state.scene==='bunker'?'bunker':zoneAt(state.player.x,state.player.y);if(region!==state.region){state.region=region;state.visited[region]=true;banner(REGIONS[region].name+' · '+REGIONS[region].description);persist();}
   const entered=visitBunkerRoom(state);if(entered){banner(entered.name+' · '+entered.hint);persist();}
-  selectTarget();if(keys.has(' ')&&!ui.placement&&swingCooldown===0)useResource();
-  if(!keys.has(' ')&&!renderer.action)state.energy=Math.min(100,state.energy+dt*1.4);
+  selectTarget();if(autoHarvestId&&!nearby().some(n=>n.id===autoHarvestId))autoHarvestId=null;
+  if((keys.has(' ')||autoHarvestId)&&!ui.placement&&swingCooldown===0){if(!useResource(keys.has(' ')?null:autoHarvestId))autoHarvestId=null;}
+  if(!keys.has(' ')&&!autoHarvestId&&!renderer.action)state.energy=Math.min(100,state.energy+dt*1.4);
   if(ui.placement)ui.updatePlacement();
  }
  if(uiTimer>.22){uiTimer=0;const ready=tickWorkstations(state);if(ready.length){for(const station of ready)toast(BUILDABLES[station.kind].name+': ready to collect.');persist();ui.refreshStation();}ui.updateTimers();updateHUD();}
  if(saveTimer>5){saveTimer=0;persist();}renderer.draw(dt);requestAnimationFrame(frame);
 }
-tickWorkstations(state);ensurePlayerSpace();selectTarget();updateHUD();persist();$('#world').focus({preventScroll:true});if(!Object.keys(state.depleted).length&&state.day===1)banner('No rush. No required path. Explore, make a home, meet the neighbors. H shows the controls.');requestAnimationFrame(frame);
+tickWorkstations(state);ensurePlayerSpace();selectTarget();updateHUD();persist();$('#world').focus({preventScroll:true});if(!Object.keys(state.depleted).length&&state.day===1)banner(touch.enabled?'Tap the ground or use the stick to walk. Chop, gather, build, or meet the neighbors. Help is in the pause menu.':'No rush. No required path. Explore, make a home, meet the neighbors. H shows the controls.');requestAnimationFrame(frame);

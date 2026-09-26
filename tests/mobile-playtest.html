@@ -1,0 +1,23 @@
+<!doctype html><html lang="en"><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Mobile controls · isolated playtest</title>
+<style>body{margin:0;padding:24px;background:#203b30;color:#f2edd4;font:16px system-ui}button,select{display:block;font:inherit;margin:16px 0;padding:14px;max-width:100%}p{line-height:1.6;max-width:600px}</style>
+<h1>Mobile playtest</h1><p>Uses only the disposable localhost:3001 save. Each scenario opens the full-screen game with touch controls enabled. Production and port-3000 saves stay untouched.</p>
+<label>Scenario <select id="scene"><option value="craft">Tent supplies</option><option value="build">Building kits</option><option value="chop">Tiny sapling</option><option value="mine">Fieldstone & pickaxe</option><option value="gather">Gather loose stone</option><option value="bunker">Bunker service barricade</option><option value="fresh">Fresh camp</option></select></label><button id="load">Load test adventure</button><p id="status"></p>
+<script type="module">
+import {freshState,SAVE_KEY,grant} from '../src/state.js';
+import {CAMP,NATURAL_NODES} from '../src/world.js';
+const status=document.querySelector('#status'),load=document.querySelector('#load');
+if(location.hostname!=='localhost'||location.port!=='3001'){load.disabled=true;status.textContent='Use localhost:3001 for isolated testing.';}
+else load.onclick=()=>{
+ const s=freshState(),scene=document.querySelector('#scene').value;let keep=null;
+ s.player={x:CAMP.x+65,y:CAMP.y+78};grant(s,{berries:10});
+ if(scene==='craft')grant(s,{logs:100,stone:100,fiber:100,planks:100,rope:30,ingots:20});
+ if(scene==='build'){s.player={x:CAMP.x+300,y:CAMP.y+200};s.packed={workbench:2,wall:8,floor:8,sharpener:2};}
+ if(['chop','mine','gather'].includes(scene)){
+  keep=NATURAL_NODES.find(n=>n.region==='home'&&n.type===({chop:'tree',mine:'rock',gather:'loose'})[scene]&&(scene==='gather'||n.tier===0));
+  s.player={x:keep.x,y:keep.y+65};if(scene==='mine')s.pick=0;
+ }
+ if(scene!=='fresh')for(const n of NATURAL_NODES)if(n!==keep&&['tree','rock','loose','fiber','berries','mushrooms','sap'].includes(n.type)&&Math.hypot(n.x-s.player.x,n.y-s.player.y)<400)s.depleted[n.id]=true;
+ if(scene==='bunker'){s.scene='bunker';s.region='bunker';s.bunker.open=true;s.player={x:782,y:300};s.pick=0;}
+ localStorage.setItem(SAVE_KEY,JSON.stringify(s));localStorage.setItem('luke-touch-controls','on');location.href='../';
+};
+</script></html>

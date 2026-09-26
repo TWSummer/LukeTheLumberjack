@@ -10,7 +10,15 @@ import {drawBunkerTerrain,drawBunkerMap} from './story-art.js';
 export class Renderer extends SpriteArt {
  constructor(canvas,state,nodes){super();Object.assign(this,{canvas,ctx:canvas.getContext('2d'),state,nodes,zoom:1.1,time:0,walking:false,facing:1,action:null,nearest:null,placement:null,particles:[],treeCache:new Map(),tiles:new Map(),reduceMotion:matchMedia('(prefers-reduced-motion: reduce)').matches});new ResizeObserver(()=>this.resize()).observe(canvas);this.resize();}
  resize(){const r=this.canvas.getBoundingClientRect();this.width=r.width;this.height=r.height;this.canvas.width=Math.round(r.width);this.canvas.height=Math.round(r.height);this.ctx.imageSmoothingEnabled=false;}
- transform(){const scale=this.zoom,w=this.width,h=this.height,vw=w/scale,vh=h/scale;const area=this.state.scene==='bunker'?BUNKER:WORLD,clamp=(p,v,max)=>v>=max?max/2:Math.max(v/2,Math.min(max-v/2,p));const x=clamp(this.state.player.x,vw,area.width),y=this.state.scene==='bunker'?this.state.player.y-35:clamp(this.state.player.y+(this.placement?90:-35),vh,area.height);return {scale,ox:w/2-x*scale,oy:h/2-y*scale,left:x-vw/2,right:x+vw/2,top:y-vh/2,bottom:y+vh/2};}
+ transform(){
+  const scale=this.zoom,w=this.width,h=this.height,vw=w/scale,vh=h/scale,area=this.state.scene==='bunker'?BUNKER:WORLD;
+  const clamp=(p,v,max)=>v>=max?max/2:Math.max(v/2,Math.min(max-v/2,p));
+  const sidePanel=this.touchMode&&this.placement&&w>650&&h<=550,compactPhone=this.touchMode&&w<=650&&h<=700;
+  const x=clamp(this.state.player.x+(sidePanel?vw*.18:0),vw,area.width);
+  const focusY=this.state.player.y+(this.placement&&!sidePanel?90:compactPhone?45:-35);
+  const y=this.state.scene==='bunker'?focusY:clamp(focusY,vh,area.height);
+  return {scale,ox:w/2-x*scale,oy:h/2-y*scale,left:x-vw/2,right:x+vw/2,top:y-vh/2,bottom:y+vh/2};
+ }
  toWorld(clientX,clientY){const r=this.canvas.getBoundingClientRect(),t=this.transform();return {x:(clientX-r.left-t.ox)/t.scale,y:(clientY-r.top-t.oy)/t.scale};}
  visible(){return true;}
  burst(x,y,color,count=9){if(this.reduceMotion)return;for(let i=0;i<count;i++)this.particles.push({x,y:y-16,vx:(Math.random()-.5)*100,vy:-40-Math.random()*60,life:.8,color});}
