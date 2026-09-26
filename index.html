@@ -1,0 +1,27 @@
+<!doctype html>
+<html lang="en">
+<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="theme-color" content="#233e34"><title>Luke the Lumberjack · The woods are yours.</title><link rel="icon" href="/favicon.svg"><link rel="stylesheet" href="/styles.css"></head>
+<body>
+ <main id="game" aria-label="Luke the Lumberjack">
+  <canvas id="world" tabindex="0" aria-label="Open woodland world. WASD to walk, hold Space to chop or mine, E to interact."></canvas>
+  <div class="vignette" aria-hidden="true"></div>
+  <div id="hud" class="hud">
+   <header class="identity glass"><div id="portrait"></div><div><span class="eyebrow">LUKE THE LUMBERJACK</span><strong>The woods are yours.</strong><div class="stamina"><span id="energy-fill"></span></div><small id="energy-label">Stamina 100 / 100</small></div></header>
+   <div class="location"><span id="location-kicker">MASSACHUSETTS · EARLY AUTUMN</span><h1 id="location-name">Pine Hollow</h1><span id="day-label">Day 1</span></div>
+   <aside class="map-hud glass"><button id="map-button" aria-label="Open woodland map, M"><canvas id="minimap" width="180" height="126" aria-label="World map with your position"></canvas><span><b>N ↑</b> Woodland map <kbd>M</kbd></span></button></aside>
+   <div class="top-actions"><button id="journal-button" title="Journal [J]">Journal <kbd>J</kbd></button><button id="help-button" aria-label="Controls and help, H">? <kbd>H</kbd></button><button id="settings-button" aria-label="Pause and settings">☰</button></div>
+   <div id="discovery-banner" class="discovery-banner" hidden></div>
+   <div id="target-info" class="target-info glass" aria-live="polite" hidden></div>
+   <div id="placement-hud" class="placement-hud glass" hidden></div>
+   <div class="bottom-hud">
+    <div class="supplies glass" id="supplies"></div>
+    <div class="toolbelt glass"><button id="axe-button" title="Equip axe [1]"><kbd>1</kbd><span id="axe-icon"></span><span class="slot-name">Axe</span></button><button id="pick-button" title="Equip pickaxe [2]"><kbd>2</kbd><span id="pick-icon"></span><span class="slot-name">Pickaxe</span></button><span class="belt-divider"></span><button id="bag-button" title="Backpack [B]"><kbd>B</kbd><span class="bag-symbol">▣</span><span class="slot-name">Backpack</span></button><button id="kits-button" title="Packed building kits [V]"><kbd>V</kbd><span id="kit-icon"></span><span class="slot-name">Packed kits</span></button><button id="food-button" title="Eat berries [F]"><kbd>F</kbd><span id="berry-icon"></span><span id="berry-count" class="slot-name">0</span></button></div>
+    <div class="equipped-label glass"><span id="equipped-name">Rusty hand axe</span><small id="save-status">Saved locally</small></div>
+   </div>
+   <div class="controls"><span><kbd>W A S D</kbd> walk</span><span><kbd>SPACE</kbd> hold to chop / mine</span><span><kbd>E</kbd> interact</span><span><kbd>TAB</kbd> change target</span><span><kbd>− +</kbd> zoom</span></div>
+   <div class="touch-controls"><div><button data-move="w" aria-label="Walk up">↑</button><section><button data-move="a" aria-label="Walk left">←</button><button data-move="s" aria-label="Walk down">↓</button><button data-move="d" aria-label="Walk right">→</button></section></div><button id="touch-use">E</button><button id="touch-strike">Chop</button></div>
+  </div>
+ </main>
+ <div id="modal-root"></div><div id="toast-stack" aria-live="polite"></div>
+ <script type="module" src="/src/main.js"></script>
+</body></html>

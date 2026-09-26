@@ -1,0 +1,22 @@
+<!doctype html><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Olga & bunker · isolated playtest</title>
+<style>body{margin:0;background:#203b30;color:#f2edd4;font:12px system-ui}header{height:72px;box-sizing:border-box;padding:7px;display:flex;gap:5px;align-items:center;flex-wrap:wrap}button,select{background:#e9e3c9;color:#2c4939;border:0;border-radius:4px;padding:6px;font:11px system-ui}iframe{border:0;width:100%;height:calc(100dvh - 72px);display:block}#status{font-size:10px}</style>
+<header><b>Story playtest</b><select id="scene" aria-label="Test scenario"><option value="olga">Meet Olga</option><option value="logged">Logging complete</option><option value="moonbell">Wild moonbell</option><option value="garden">Plant the garden</option><option value="garden-done">Show Olga the garden</option><option value="invite">Date invitation</option><option value="date">Picnic date</option><option value="room">Finished room</option><option value="home">Home with Olga</option><option value="locked">Locked bunker</option><option value="crowbar">Bunker with crowbar</option><option value="hermit">Gerald’s room</option></select><button id="load">Load scene</button><button data-key="w">North 1s</button><button data-key="s">South 1s</button><button data-key="a">West 1s</button><button data-key="d">East 1s</button><button data-key="e">Interact E</button><span id="status">Port 3001 test saves only.</span></header><iframe title="Story test world"></iframe>
+<script type="module">
+import {freshState,SAVE_KEY,grant} from '../src/state.js';import {NATURAL_NODES} from '../src/world.js';import {OLGA_HOME,MOONBELL,PICNIC,BUNKER_ENTRY} from '../src/story-data.js';import {olgaPosition} from '../src/construction.js';import {furnishedHouse} from './story-fixtures.js';import {findOlgaRoom} from '../src/rooms.js';
+const frame=document.querySelector('iframe'),status=document.querySelector('#status');
+if(location.port!=='3001'){document.querySelector('header').textContent='Use port 3001 for the isolated playtest.';}else{
+ document.querySelector('#load').onclick=async()=>{const s=freshState(),scene=document.querySelector('#scene').value;s.player={x:OLGA_HOME.x,y:OLGA_HOME.y+45};s.day=2;
+ if(scene==='logged'){s.olga.active=true;s.stats.qualityTrees=3;}
+ if(['moonbell','garden','garden-done'].includes(scene)){s.olga.step=1;s.olga.active=true;}
+ if(scene==='moonbell'){s.bridge=true;s.player={x:MOONBELL.x,y:MOONBELL.y+45};}
+ if(['garden','garden-done','home'].includes(scene)){const p={id:'garden-planter',kind:'planter',x:1656,y:2400,rotation:0,jobs:[]};s.structures.push(p);if(scene==='garden'){s.player={x:p.x,y:p.y+45};grant(s,{moonbell:1});}else p.plant='moonbell';s.moonbellFound=true;}
+ if(scene==='invite'){s.olga.step=2;}
+ if(scene==='date'){s.olga.step=2;s.olga.active=true;const p=olgaPosition(s);s.player={x:p.x,y:p.y+45};}
+ if(['room','home'].includes(scene)){furnishedHouse(s);s.olga.step=3;s.olga.active=true;if(scene==='home'){s.olga.step=4;s.olga.active=false;s.olga.bedId=findOlgaRoom(s).bed.id;const p=olgaPosition(s);s.player={x:p.x+40,y:p.y+40};}}
+ if(['locked','crowbar'].includes(scene)){s.player={x:BUNKER_ENTRY.x,y:BUNKER_ENTRY.y+95};if(scene==='crowbar')grant(s,{crowbar:1});}
+ if(scene==='hermit'){s.scene='bunker';s.bunker.open=true;s.region='bunker';s.player={x:550,y:520};}
+ for(const n of NATURAL_NODES)if(Math.hypot(n.x-s.player.x,n.y-s.player.y)<160&&['tree','rock','fiber','berries','mushrooms','sap'].includes(n.type))s.depleted[n.id]=true;
+ await new Promise(resolve=>{frame.onload=resolve;frame.src='about:blank';});frame.onload=null;localStorage.setItem(SAVE_KEY,JSON.stringify(s));frame.src='/';status.textContent='Loaded '+scene;};
+ document.querySelectorAll('[data-key]').forEach(b=>b.onclick=()=>{const key=b.dataset.key,doc=frame.contentDocument;doc.dispatchEvent(new KeyboardEvent('keydown',{key,bubbles:true}));status.textContent='Holding '+key;setTimeout(()=>{doc.dispatchEvent(new KeyboardEvent('keyup',{key,bubbles:true}));status.textContent='Released '+key;},key==='e'?70:1000);});frame.src='/';
+}
+</script>

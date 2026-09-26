@@ -1,0 +1,142 @@
+{
+  "version": 4,
+  "scene": "bunker",
+  "stats": {
+    "qualityTrees": 17
+  },
+  "olga": {
+    "step": 2,
+    "active": true,
+    "loggingStart": 4
+  },
+  "moonbellFound": true,
+  "bunker": {
+    "open": true,
+    "looted": {
+      "tools": true,
+      "pantry": true
+    },
+    "harvestDay": 14,
+    "saying": 5
+  },
+  "day": 14,
+  "energy": 63,
+  "inventory": {
+    "crowbar": 1,
+    "moonbell": 0,
+    "scrap": 7,
+    "copper": 3,
+    "glowcaps": 0,
+    "logs": 137,
+    "stone": 88,
+    "fiber": 0,
+    "berries": 9,
+    "mushrooms": 0,
+    "ore": 0,
+    "planks": 0,
+    "rope": 0,
+    "ingots": 0,
+    "coal": 0,
+    "steel": 12,
+    "hardwood": 0,
+    "crystal": 0,
+    "sap": 0,
+    "relic": 0,
+    "tap": 0
+  },
+  "packed": {
+    "forge": 1,
+    "floor": 2
+  },
+  "axe": 2,
+  "pick": 1,
+  "equipped": "pick",
+  "structures": [
+    {
+      "id": "tent",
+      "kind": "tent",
+      "x": 1100,
+      "y": 2940,
+      "rotation": 0,
+      "region": "home",
+      "jobs": []
+    },
+    {
+      "id": "placed-1",
+      "kind": "workbench",
+      "x": 1608,
+      "y": 3192,
+      "rotation": 0,
+      "region": "home",
+      "jobs": [
+        {
+          "recipe": "planks",
+          "count": 5,
+          "startedAt": 1900000000000,
+          "readyAt": 2000000000000,
+          "status": "working",
+          "output": {
+            "planks": 10
+          }
+        }
+      ]
+    },
+    {
+      "id": "placed-2",
+      "kind": "planter",
+      "x": 1680,
+      "y": 3264,
+      "rotation": 90,
+      "region": "home",
+      "jobs": [],
+      "plant": "moonbell"
+    },
+    {
+      "id": "placed-3",
+      "kind": "forge",
+      "x": 1776,
+      "y": 3192,
+      "rotation": 0,
+      "region": "home",
+      "jobs": [
+        {
+          "recipe": "axe3",
+          "count": 1,
+          "startedAt": 1900000000000,
+          "readyAt": 2000000000000,
+          "status": "working",
+          "output": {}
+        }
+      ]
+    }
+  ],
+  "nextId": 6,
+  "player": {
+    "x": 700,
+    "y": 480
+  },
+  "region": "bunker",
+  "depleted": {
+    "wild-0": true
+  },
+  "damage": {
+    "wild-1": 3
+  },
+  "visited": {
+    "home": true,
+    "ridge": true,
+    "bunker": true
+  },
+  "accepted": {
+    "mara": true
+  },
+  "helped": {
+    "jo": true
+  },
+  "discovered": {
+    "mill": true
+  },
+  "bridge": true,
+  "sound": true,
+  "finished": false
+}

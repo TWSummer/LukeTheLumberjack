@@ -1,0 +1,12 @@
+<!doctype html><meta charset="utf-8"><title>Open-world playtest · isolated save</title>
+<style>body{margin:0;background:#203b30;color:#f2edd4;font:12px system-ui}header{height:80px;box-sizing:border-box;padding:8px;display:flex;gap:5px;align-items:center;flex-wrap:wrap}button{background:#e9e3c9;color:#2c4939;border:0;border-radius:4px;padding:6px;font:11px system-ui}iframe{border:0;width:100%;height:calc(100dvh - 80px);display:block}#status{font-size:10px}</style>
+<header><b>Isolated playtest</b><button data-scene="fresh">Fresh camp</button><button data-scene="craft">Tent supplies</button><button data-scene="bridge">Broken bridge</button><button data-scene="tools">Ancient tree & tools</button><button data-key="w">Walk north 1s</button><button data-key="s">Walk south 1s</button><button data-key="a">Walk west 1s</button><button data-key="d">Walk east 1s</button><button data-key=" ">Hold Space 6s</button><button data-key="e">Interact E</button><span id="status">Choose a scene to seed only this test origin.</span></header><iframe title="Playable test world"></iframe>
+<script type="module">
+import {freshState,SAVE_KEY,grant} from '../src/state.js';import {CAMP,BRIDGE,NATURAL_NODES} from '../src/world.js';
+const frame=document.querySelector('iframe'),status=document.querySelector('#status');
+if(location.port!=='3001'){document.querySelector('header').textContent='Run the isolated playtest server on port 3001.';}else{
+ document.querySelectorAll('[data-scene]').forEach(b=>b.onclick=async()=>{const s=freshState();if(b.dataset.scene==='craft')grant(s,{logs:100,stone:100,fiber:100,planks:100,rope:20,ingots:20,steel:20});if(b.dataset.scene==='bridge'){s.player={x:BRIDGE.x-170,y:BRIDGE.y};grant(s,{planks:24,rope:6});}if(b.dataset.scene==='tools'){const n=NATURAL_NODES.find(n=>n.type==='tree'&&n.tier===4);s.player={x:n.x-80,y:n.y+30};s.axe=4;s.pick=3;s.bridge=true;}await new Promise(resolve=>{frame.onload=resolve;frame.src='about:blank';});frame.onload=null;localStorage.setItem(SAVE_KEY,JSON.stringify(s));frame.src='/';status.textContent=b.textContent+' loaded';});
+ document.querySelectorAll('[data-key]').forEach(b=>b.onclick=()=>{const key=b.dataset.key,doc=frame.contentDocument;doc.dispatchEvent(new KeyboardEvent('keydown',{key,bubbles:true}));status.textContent='Holding '+(key===' '?'Space':key);setTimeout(()=>{doc.dispatchEvent(new KeyboardEvent('keyup',{key,bubbles:true}));status.textContent='Released '+(key===' '?'Space':key);},key===' '?6000:key==='e'?70:1000);});
+ frame.src='/';
+}
+</script>

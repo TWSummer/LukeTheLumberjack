@@ -1,0 +1,21 @@
+<!doctype html><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Bunker expansion · isolated playtest</title>
+<style>body{margin:0;background:#203b30;color:#f2edd4;font:12px system-ui}header{height:80px;box-sizing:border-box;padding:7px;display:flex;gap:5px;align-items:center;flex-wrap:wrap}button,select{background:#e9e3c9;color:#2c4939;border:0;border-radius:4px;padding:6px;font:11px system-ui}iframe{border:0;width:100%;height:calc(100dvh - 80px);display:block}#status{font-size:10px}</style>
+<header><b>Bunker playtest</b><select id="scene" aria-label="Test scenario"><option value="legacy">Resume old v4 save</option><option value="barrier">Service barricade</option><option value="rubble">Mine the cave-in</option><option value="generator">Repair generator</option><option value="pump">Drain the passages</option><option value="flood">Blocked floodwater</option><option value="crystal">Mine deep quartz</option><option value="vault">Survey vault</option><option value="map">Explored map</option></select><button id="load">Load scene</button><button data-key="w">North 1s</button><button data-key="s">South 1s</button><button data-key="a">West 1s</button><button data-key="d">East 1s</button><button data-key=" ">Hold Space 6s</button><button data-key="e">Interact E</button><span id="status">Only port 3001 test saves change.</span></header><iframe title="Bunker test world"></iframe>
+<script type="module">
+import {freshState,SAVE_KEY,grant} from '../src/state.js';import {BUNKER_ROOMS,BUNKER_RESOURCES} from '../src/bunker-data.js';
+const frame=document.querySelector('iframe'),status=document.querySelector('#status');
+if(location.port!=='3001'){document.querySelector('header').textContent='Use port 3001 for the isolated playtest.';}else{
+ document.querySelector('#load').onclick=async()=>{let s=freshState();const scene=document.querySelector('#scene').value;Object.assign(s,{scene:'bunker',region:'bunker',day:7,axe:1,pick:0});s.bunker.open=true;grant(s,{berries:12});
+ if(scene==='legacy')s=await(await fetch('/tests/fixtures/bunker-v4-save.json')).json();
+ if(scene==='barrier')s.player={x:782,y:300};
+ if(scene==='rubble'){s.player={x:1260,y:592};s.bunker.cleared['service-barricade']=true;}
+ if(scene==='generator'){s.player={x:1960,y:285};grant(s,{scrap:6,copper:4});}
+ if(scene==='pump'){s.player={x:1950,y:1005};s.bunker.power=true;}
+ if(scene==='flood')s.player={x:2660,y:1180};
+ if(scene==='crystal'){s.player={x:2480,y:1505};s.pick=3;s.bunker.power=true;s.bunker.drained=true;}
+ if(scene==='vault'){s.player={x:3450,y:1560};s.bunker.power=true;s.bunker.drained=true;s.bunker.cleared['vault-timbers']=true;}
+ if(scene==='map'){s.player={x:1950,y:1005};s.bunker.power=true;s.bunker.drained=true;s.bunker.shortcut=true;for(const r of BUNKER_ROOMS)s.bunker.rooms[r.id]=true;for(const n of BUNKER_RESOURCES)if(n.barrier)s.bunker.cleared[n.id]=true;}
+ await new Promise(resolve=>{frame.onload=resolve;frame.src='about:blank';});frame.onload=null;localStorage.setItem(SAVE_KEY,JSON.stringify(s));frame.src='/';status.textContent='Loaded '+scene;};
+ document.querySelectorAll('[data-key]').forEach(b=>b.onclick=()=>{const key=b.dataset.key,doc=frame.contentDocument;doc.dispatchEvent(new KeyboardEvent('keydown',{key,bubbles:true}));status.textContent='Holding '+(key===' '?'Space':key);setTimeout(()=>{doc.dispatchEvent(new KeyboardEvent('keyup',{key,bubbles:true}));status.textContent='Released '+(key===' '?'Space':key);},key===' '?6000:key==='e'?70:1000);});frame.src='/';
+}
+</script>
