@@ -1,4 +1,5 @@
 import test from 'node:test';
+import {recoverStamina} from '../src/activities.js';
 import assert from 'node:assert/strict';
 import {AXE_TIERS,TREE_TIERS,PICK_TIERS,ROCK_TIERS,DISCOVERIES,SIDE_QUESTS} from '../src/data.js';
 import {WORLD,CAMP,BRIDGE,NATURAL_NODES,terrainBlocked,zoneAt,riverX} from '../src/world.js';
@@ -78,7 +79,7 @@ test('discoveries reward exploration once and unlock advanced recipes independen
 });
 test('neighbor rewards and perks are optional, useful, and cannot be claimed remotely or twice',()=>{
  const s=supplied(),npc=NATURAL_NODES.find(n=>n.person==='mara');s.accepted.mara=true;assert.ok(turnInQuest(s,'mara',npc).error);visit(s,npc);assert.ok(turnInQuest(s,'mara',npc).success);assert.ok(turnInQuest(s,'mara',npc).error);const plant=NATURAL_NODES.find(n=>n.type==='fiber');visit(s,plant);assert.equal(gather(s,plant).reward.fiber,6);
- const r=RECIPE_BY_ID.planks,normal=jobDuration(s,r);s.helped.jo=true;assert.equal(jobDuration(s,r),normal*.75);s.energy=1;s.helped.nell=true;assert.equal(consumeBerry(s).amount,44);
+ const r=RECIPE_BY_ID.planks,normal=jobDuration(s,r);s.helped.jo=true;assert.equal(jobDuration(s,r),normal*.75);s.maxStamina=100;s.energy=1;s.helped.nell=true;assert.equal(consumeBerry(s).amount,44);
 });
 test('every recipe has a physical producer, valid ingredients, and no chapter gate',()=>{
  for(const r of ALL_RECIPES){assert.ok(r.stations.length);for(const id of r.stations)assert.ok(BUILDABLES[id].station);for(const item of Object.keys(r.cost))assert.ok(item in freshState().inventory);assert.ok(!('chapter' in r));}
@@ -90,7 +91,7 @@ test('workshop production can unlock every axe and pick tier without neighbor qu
  const mill=NATURAL_NODES.find(n=>n.discovery==='mill');visit(s,mill);discover(s,mill);make(s,stations.sawbench,'axe4');make(s,stations.sawbench,'pick3');assert.equal(s.axe,4);assert.equal(s.pick,3);assert.deepEqual(s.helped,{});
 });
 test('starter materials can be gathered with the initial equipment to make the first workbench',()=>{
- const s=freshState();for(const type of ['tree','loose','fiber']){const item={tree:'logs',loose:'stone',fiber:'fiber'}[type],required={logs:6,stone:4,fiber:2}[item];for(const n of NATURAL_NODES.filter(n=>n.type===type&&(type!=='tree'||n.tier===0)&&Math.hypot(n.x-CAMP.x,n.y-CAMP.y)<550)){visit(s,n);if(type==='tree'){while(!s.depleted[n.id])assert.equal(strike(s,n).error,undefined);}else gather(s,n);if(s.inventory[item]>=required)break;}assert.ok(s.inventory[item]>=required,item+' must be available near camp');}
+ const s=freshState();for(const type of ['tree','loose','fiber']){const item={tree:'logs',loose:'stone',fiber:'fiber'}[type],required={logs:6,stone:4,fiber:2}[item];for(const n of NATURAL_NODES.filter(n=>n.type===type&&(type!=='tree'||n.tier===0)&&Math.hypot(n.x-CAMP.x,n.y-CAMP.y)<550)){visit(s,n);if(type==='tree'){while(!s.depleted[n.id]){if(s.energy<.65)recoverStamina(s,1);assert.equal(strike(s,n).error,undefined);}}else gather(s,n);if(s.inventory[item]>=required)break;}assert.ok(s.inventory[item]>=required,item+' must be available near camp');}
  make(s,s.structures[0],'kit-workbench');assert.equal(s.packed.workbench,1);assert.equal(s.axe,0);assert.equal(s.pick,-1);
 });
 

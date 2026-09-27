@@ -48,7 +48,7 @@ If npm is available, `npm test` and `npm run build` are equivalent. `dist/` cont
 
 ## Controls
 
-- **WASD / arrows:** walk. **Shift:** move faster.
+- **WASD / arrows:** walk. **Shift:** sprint, using **8 stamina per second**.
 - **Hold Space:** repeatedly chop or mine a nearby resource with the appropriate tool.
 - **E:** gather plants or loose stones, talk, investigate, or use a station.
 - **Tab:** cycle nearby targets, including layered house pieces.
@@ -66,10 +66,10 @@ The canvas fills the viewport. HUD elements are overlays. The page itself never 
 
 Open the same game URL in your phone's browser. Touch controls appear automatically on touchscreens, and both portrait and landscape layouts are supported. There is no separate mobile game: the world, visuals, progression, quests, crafting jobs, and building rules are the same. Keyboard and mouse controls remain available, including on devices with both a keyboard and a touchscreen.
 
-- **Walk:** tap open ground, or hold and slide the thumbstick in any direction. Small stick movements give fine control. Tap **Run** to toggle faster travel.
+- **Walk:** tap open ground, or hold and slide the thumbstick in any direction. Small stick movements give fine control. Tap **Run** to toggle sprinting (8 stamina per second).
 - **Chop / Mine:** tap a nearby resource or its action button once to keep working on that resource. It stops when depleted, when your tool/stamina cannot continue, or when you tap **Stop**, move, change targets, or open a menu. It never starts harvesting a different resource automatically.
 - **Interact / Use / Talk / Gather:** the right-hand button changes to match the highlighted object. Tap **Next target** to reach nearby objects or overlapping house pieces.
-- **Craft:** visit your tent or a workstation and tap **Use**. Tap a recipe to load materials, leave it running, then return and collect the output. Workstations and tool service retain all their normal rules.
+- **Craft:** visit your tent or a workstation and tap **Use**. Choose a recipe, enter any whole-number quantity (or use **− / + / Max**), review total materials/output/time, and tap **Start crafting**. Leave it running, then return and collect the output. Workstations and tool service retain all their normal rules.
 - **Build:** collect a kit or open **Packed kits**. Tap or drag the outline onto clear ground, then tap **Place**. Nudge arrows, **Rotate**, and **Grid on/off** give the same precision as keyboard placement. The thumbstick still moves Luke while placing. Cancelling a new kit keeps it packed; cancelling a move leaves the original piece in place.
 - **Other controls:** Map, Journal, Backpack, Packed kits, Berries, and zoom **− / +** are onscreen. The pause menu includes sound, help, and a **Touch controls** setting: Automatic, Always show, or Hide.
 
@@ -89,7 +89,7 @@ Gather **6 wood, 4 stone, and 2 fiber**. Your rusty axe cuts tiny saplings; loos
 
 Buildings cannot be made from a global construction catalog. Each is a physical kit crafted at a station, collected, and carried in the backpack. Placing it consumes the kit. Cancelling placement keeps it. House floors, walls, windows, doorways, roofs, beds, fences, and planters can be combined freely. Stations and furniture can sit on floors; roof tiles fade near Luke. Empty structures can be moved or packed by interacting with them.
 
-Every station runs one independent job; multiple stations work simultaneously. A job takes materials from your inventory when started. Output stays at that station until collected locally. Material and kit batches can contain 1, 5, or 10 runs. Workbenches produce two planks per wood; sawmills produce six. A tool stays at its station during service and is upgraded only when collected. Unfinished jobs can be cancelled for a refund. Working stations and stations with uncollected output cannot be moved or packed.
+Every station runs one independent job; multiple stations work simultaneously. A job takes materials from your inventory when started. Output stays at that station until collected locally. Choose a recipe, then type any positive whole-number quantity or use **− / + / Max**. The preview shows total inputs, output and time; **Max** uses the limiting ingredient in your backpack. Tool upgrades remain one at a time. Workbenches produce two planks per wood; sawmills produce six. A tool stays at its station during service and is upgraded only when collected. Unfinished jobs can be cancelled for a refund. Working stations and stations with uncollected output cannot be moved or packed.
 
 ## Tool progression
 
@@ -105,7 +105,15 @@ Larger trees require the corresponding tool. High-tier tools also fell lower-tie
 
 Four pickaxe tiers unlock fieldstone, iron-bearing boulders, dense outcrops, and quartz seams. Even soft fieldstone contains traces of ore, so mining can advance without completing a neighbor quest. Kilns smelt iron and make charcoal; forges produce steel and upgraded tools; precision benches produce the final saw and pickaxe after the plans are discovered.
 
-Stamina regenerates slowly when not harvesting. Blueberries restore it immediately. Rest at the tent, a bed, or a campfire to restore stamina, replenish natural resources, and finish pending jobs. Rest does not collect those jobs or teleport Luke. Placed structures keep their footprints clear of regrowth.
+Luke starts with **25 maximum stamina**. Sprinting consumes **8 stamina per second** while moving; an exhausted Luke walks until 5 stamina has recovered. Stamina regenerates at 1.4 per second while walking or standing, but not while sprinting, harvesting or training. Blueberries restore it immediately. Rest at the tent, a bed, or a campfire to restore stamina, replenish natural resources, and finish pending jobs. Rest does not collect those jobs or teleport Luke. Placed structures keep their footprints clear of regrowth.
+
+## Training and Walter’s Boundary Dash
+
+Craft a **woodland pull-up bar** at a workbench for **2 wood + 1 iron ingot**, collect the kit, and place it wherever you want to train. Interact at the bar and complete a **3-second pull-up**: it costs **3 stamina** and permanently adds **1 maximum stamina**, up to **100**. You must finish the repetition at the bar. Leaving cancels the repetition; training progress that is already earned is permanent. Rest and food refill only your current maximum.
+
+**Walter “Lightning” Whitcomb**, the world's fastest 80-year-old, waits at a flagged racecourse on the far northern boundary, west of the river. Look on the map for **Walter’s Boundary Dash**. Every race wagers **1 wood** from your inventory. Walter gives you a breather before the countdown, refilling your trained capacity. Sprint to the opposite flag using **Shift + D / A**, or **Run + the thumbstick** on a phone. Stay within the marked lanes. Winning pays **2 wood** (both stakes); losing or leaving the lanes forfeits your wood. Food and rest are unavailable during races. Pause stops both runners, and an active race survives saving/reloading. Walter waits at the finish for unlimited rematches in the opposite direction.
+
+The 2,400-unit course has fixed speeds: Walter runs at 296 units/second, and normal Luke sprints at 290. Even a perfect fully trained sprint narrowly loses. Find the golden **flower of swiftness** along the woodland trail north of Nell’s maple grove on the eastern bank. Take its unique cutting and plant it in an empty woodland planter in your garden. It grants a **5% sprint-speed boost while planted**, enough for a well-trained Luke to win. The bonus does not stack. Moving the planter keeps its flower; packing it returns the cutting and pauses the bonus. Olga’s moonbell can grow in a separate planter.
 
 ## Olga: a life taking root
 
@@ -141,6 +149,8 @@ The bunker has **13 rooms and chambers across 11 map sectors**, including the or
 
 Before loading a pre-expansion save, the game keeps its original serialized data under `luke-open-world-v4-before-bunker-expansion` in the same browser, if storage permits. This backup is written once and is not overwritten by later autosaves. Progress—including new cleared barriers, damaged deposits, machinery, discoveries, and new loot—continues saving automatically. No backend account is required.
 
+The stamina update also keeps version-4 progress. Saves from before training was introduced start at **25 maximum stamina**, with current energy scaled proportionally from the old 100-point meter. An exact one-time backup is retained under `luke-open-world-v4-before-stamina-training` if browser storage permits. Earned stamina, planted swiftness, Walter’s record and active wagers persist in later saves. No existing surface resource positions or IDs are changed.
+
 ## Verification
 
 ```sh
@@ -152,6 +162,8 @@ Tests cover world connectivity rules, the physical crossing, resource and tool g
 For isolated browser testing, start a second server on port 3001 and open `/tests/open-world-playtest.html`, `/tests/story-playtest.html`, or `/tests/bunker-playtest.html`. Their visible controls seed test scenarios and hold keyboard inputs in the embedded game. The bunker fixture also resumes the original version-4 save fixture. The fixtures refuse to seed the normal port-3000 adventure.
 
 `/tests/mobile-playtest.html` offers full-screen touch scenarios for crafting, building, chopping, mining, gathering, and bunker salvage on `localhost:3001` only. Test portrait and landscape sizes, tap-only crafting and placement, target cycling, harvesting cancellation, and keyboard use with touch controls shown/hidden. Pointer tests cover diagonal speed, fine movement, multiple-finger ownership, release, cancellation, lost capture, and resets. Development fixtures are excluded from the Pages build.
+
+The activity tests additionally cover arbitrary crafting quantities, exact refunds and large-job resume, stamina migration/backups and caps, movement-based sprint costs, timed/local training, swiftness custody, and race outcomes at 30/60/144 fps in both directions. `/tests/activity-playtest.html` provides isolated crafting, training, garden, and race scenarios, plus full-screen touch testing.
 
 ## Source layout
 
@@ -167,6 +179,8 @@ For isolated browser testing, start a second server on port 3001 and open `/test
 - `src/renderer.js`: following camera, cached terrain tiles, culling, bridges, and maps.
 - `src/sprite-art.js` / `src/building-renderer.js`: procedural woodland, character, and structure art.
 - `src/ui.js`: keyboard panels, physical crafting, backpack, and kit placement.
+- `src/activity-data.js`, `src/activities.js`, `src/activity-ui.js`, `src/activity-art.js`: stamina training, swiftness, Walter’s fixed-speed races, course, and activity interactions.
+- `src/crafting-ui.js`: recipe quantities, Max, cost/output/time preview, and job confirmation.
 - `src/main.js`: collision, movement, input, harvesting, sound, and the game loop.
 - `src/touch-controls.js`: thumbstick pointer capture, touch detection/preferences, and contextual onscreen actions.
 - `styles.css`: full-screen HUD and responsive overlays.

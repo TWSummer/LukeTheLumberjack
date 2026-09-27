@@ -8,6 +8,8 @@ import {BUNKER,BUNKER_CACHES} from './story-data.js';
 import {bunkerInactive,canReachBunker,bunkerRoomAt} from './bunker-geometry.js';
 import {bunkerResourceBlock,strikeBunker,visitBunkerRoom} from './bunker.js';
 import {createTouchControls} from './touch-controls.js';
+import {RACE} from './activity-data.js';
+import {maxStamina,hasSwiftness,movementBudget,spendMovement,recoverStamina,tickTraining,tickRace,walterPosition} from './activities.js';
 const $=s=>document.querySelector(s);
 let storage;try{storage=localStorage;}catch{storage={getItem:()=>null,setItem:()=>{throw Error();}};}
 const state=loadState(storage),keys=new Set();let nodes=worldNodes(state),nearest=null,targetId=null,last=0,uiTimer=0,saveTimer=0,swingCooldown=0,actionTime=0,clickDestination=null,lastError='',errorAt=0,lastSaved=true,bannerTimer,touch=null,autoHarvestId=null,worldPointer=null;
@@ -25,10 +27,12 @@ function distance(n){if(n.type==='structure'){const b=bounds(n);return Math.hypo
 function nearby(){return nodes.filter(n=>!state.depleted[n.id]&&!bunkerInactive(state,n)&&(state.scene!=='bunker'||canReachBunker(state,n))&&!['mansion','ruin','workshop','kettle','cottage','picnic'].includes(n.type)&&distance(n)<(n.type==='crossing'?210:n.type==='structure'?78:110)).map(n=>({n,score:distance(n)+(n.type==='structure'&&BUILDABLES[n.kind].layer?40:0)+((n.x-state.player.x)*renderer.facing<0?14:0)})).sort((a,b)=>a.score-b.score).map(p=>p.n);}
 function selectTarget(){const list=nearby();nearest=list.find(n=>n.id===targetId)||list[0]||null;if(targetId&&!list.some(n=>n.id===targetId))targetId=null;renderer.nearest=nearest;}
 function targetHTML(n){
- if(!n)return '';if(n.type==='structure'){const o=getStructure(state,n.id),d=BUILDABLES[n.kind];return `<strong>${d.name}</strong><small><kbd>E</kbd>${o.jobs.some(j=>j.status==='ready')?'Collect finished work':o.jobs.length?'Check work in progress':d.station?'Craft here':n.kind==='bed'?'Rest / arrange':'Arrange / use'}</small>`;}
+ if(!n)return '';if(n.type==='structure'){const o=getStructure(state,n.id),d=BUILDABLES[n.kind];return `<strong>${d.name}</strong><small><kbd>E</kbd>${o.jobs.some(j=>j.status==='ready')?'Collect finished work':o.jobs.length?'Check work in progress':d.station?'Craft here':n.kind==='pullupbar'?'Train · +1 maximum stamina':n.kind==='bed'?'Rest / arrange':'Arrange / use'}</small>`;}
  if(n.type==='bunkerresource'){const error=bunkerResourceBlock(state,n);return '<strong>'+n.name+'</strong><small class="'+(error?'locked':'')+'">'+(error||'<kbd>HOLD SPACE</kbd>'+(n.tool==='axe'?'Chop / salvage':'Mine'))+(n.barrier?' · opens a passage':'')+'</small>';}
  if(['bunkergate','bunkercontrol','bunkernote','bunkergarden'].includes(n.type))return '<strong>'+n.name+'</strong><small><kbd>E</kbd>'+({bunkergate:state.bunker[n.flag]?'Inspect open passage':n.flag==='shortcut'?'Release from the barracks side':n.flag==='drained'?'Inspect flooded passage':'Inspect blast door',bunkercontrol:n.action==='power'?(state.bunker.power?'Generator running':'Repair · 6 scrap + 4 copper'):(state.bunker.drained?'Pumps running':'Drain the lower passages'),bunkernote:'Read the old records',bunkergarden:'Gather living cultures'})[n.type]+'</small>';
  if(['bunker','bunkerexit','bunkercache','growtray','rareplant'].includes(n.type)){const label=({bunker:'Abandoned bunker',bunkerexit:'Stairs to the woods',bunkercache:BUNKER_CACHES[n.cache]?.name,growtray:'Lantern-cap grow tray',rareplant:'Silver-blue moonbell'})[n.type];return '<strong>'+label+'</strong><small><kbd>E</kbd>'+({bunker:state.bunker.open?'Enter the bunker':'Pry open · requires a forged crowbar',bunkerexit:'Climb out',bunkercache:state.bunker.looted[n.cache]?'Inspect searched cache':'Search for salvage',growtray:'Gather living lantern caps',rareplant:state.moonbellFound?'A cutting is already yours':'Take a cutting for your garden'})[n.type]+'</small>';}
+ if(n.type==='swiftness')return '<strong>Flower of swiftness</strong><small><kbd>E</kbd>'+(state.swiftnessFound?'Inspect the golden flower':'Take a cutting · garden sprint bonus')+'</small>';
+ if(n.type==='raceflag')return '<strong>Boundary Dash · '+n.side+' flag</strong><small><kbd>E</kbd>Meet Walter to bet 1 wood on a race</small>';
  if(n.type==='crossing')return `<strong>Mosswater crossing</strong><small><kbd>E</kbd>${state.bridge?'A way to the eastern woods':'Repair bridge · 24 planks + 6 cord'}</small>`;
  if(n.type==='npc')return `<strong>${PEOPLE[n.person].name}</strong><small><kbd>E</kbd>Talk · ${n.person==='olga'&&state.olga.step===4?'At home with Luke':n.person==='olga'&&state.olga.step===2&&state.olga.active?'Your picnic date':PEOPLE[n.person].role}</small>`;
  if(n.type==='tree'||n.type==='rock'){const def=(n.type==='tree'?TREE_TIERS:ROCK_TIERS)[n.tier],error=resourceBlock(state,n);return `<strong>${nodeName(n)}</strong><small class="${error?'locked':''}">${error||'<kbd>HOLD SPACE</kbd>'+(n.type==='tree'?'Chop':'Mine')} · ${n.type==='tree'?def.logs+' wood':def.stone+' stone'+(def.ore?' + '+def.ore+' ore':' + traces of ore')}</small>`;}
@@ -37,11 +41,13 @@ function targetHTML(n){
 function updateHUD(){
  $('#location-kicker').textContent=state.scene==='bunker'?'HEMLOCK RIDGE · UNDERGROUND':'MASSACHUSETTS · EARLY AUTUMN';
  $('#minimap').setAttribute('aria-label',state.scene==='bunker'?'Bunker floor plan with your position':'World map with your position');
- $('#energy-fill').style.width=state.energy+'%';$('#energy-label').textContent='Stamina '+Math.floor(state.energy)+' / 100';$('#location-name').textContent=state.scene==='bunker'?(bunkerRoomAt(state.player.x,state.player.y)?.name||'Service tunnels'):REGIONS[state.region].name;$('#day-label').textContent='Day '+state.day+' · '+Math.round(state.player.x)+', '+Math.round(state.player.y);
+ $('#energy-fill').style.width=(state.energy/maxStamina(state)*100)+'%';$('#energy-label').textContent='Stamina '+Math.floor(state.energy)+' / '+maxStamina(state)+(state.winded?' · winded':hasSwiftness(state)?' · swift':'');$('#location-name').textContent=state.scene==='bunker'?(bunkerRoomAt(state.player.x,state.player.y)?.name||'Service tunnels'):REGIONS[state.region].name;$('#day-label').textContent='Day '+state.day+' · '+Math.round(state.player.x)+', '+Math.round(state.player.y);
  $('#supplies').innerHTML=['logs','stone','fiber'].map(k=>`<span title="${ITEMS[k].name}">${itemIcon(k)}${state.inventory[k]}</span>`).join('');$('#berry-count').textContent=state.inventory.berries+' berries';
  $('#axe-button').classList.toggle('active',state.equipped==='axe');$('#pick-button').classList.toggle('active',state.equipped==='pick');$('#equipped-name').textContent=toolAtBench(state,state.equipped)?'Tool at the workstation':state.equipped==='axe'?AXE_TIERS[state.axe].name:state.pick<0?'No pickaxe · make one at a workbench':PICK_TIERS[state.pick].name;
  $('#kits-button').title='Packed building kits [V] · '+Object.values(state.packed).reduce((a,n)=>a+n,0)+' packed';
  const html=targetHTML(nearest);$('#target-info').hidden=!nearest||!!ui.placement||!!ui.modal;if($('#target-info').innerHTML!==html)$('#target-info').innerHTML=html;
+ const race=state.race.active;$('#race-hud').hidden=!race;
+ if(race){const distance=RACE.east-RACE.west,progress=Math.max(0,Math.min(1,(state.player.x-race.start)*race.direction/distance));$('#race-status').textContent=race.phase==='countdown'?'Ready… '+Math.ceil(race.countdown):'BOUNDARY DASH · '+(race.direction===1?'EAST →':'← WEST');$('#race-instruction').textContent=race.phase==='countdown'?(touch?.enabled?'Turn on Run + hold the stick toward the finish':'Hold Shift + '+(race.direction===1?'D':'A')+' to sprint'):'Luke '+Math.round(progress*100)+'% · Walter '+Math.round(race.distance/distance*100)+'%';$('#luke-race-progress').style.width=(progress*100)+'%';$('#walter-race-progress').style.width=(race.distance/distance*100)+'%';}
  renderer.touchMode=!!touch?.enabled;touch?.update(nearest,autoHarvestId);drawMap($('#minimap'),state,true);
 }
 function rewards(reward){return Object.entries(reward).map(([k,n])=>'+'+n+' '+ITEMS[k].short).join(' · ');}
@@ -65,6 +71,8 @@ function toggleHarvest(){
 function zoomBy(delta){renderer.zoom=Math.max(.75,Math.min(1.8,renderer.zoom+delta));}
 function interact(n=nearest){
  if(!n||ui.modal||ui.placement)return;
+ if(n.type==='swiftness'){ui.showSwiftness();return;}
+ if(n.type==='raceflag'){ui.showWalter();return;}
  if(['bunker','bunkerexit','bunkercache','growtray','rareplant','bunkergate','bunkercontrol','bunkernote','bunkergarden'].includes(n.type)){ui.showStoryNode(n);return;}
  if(n.type==='bunkerresource'){const error=bunkerResourceBlock(state,n);toast(error||'Hold Space to '+(n.tool==='axe'?'cut this apart.':'mine this deposit.'),error?'error':'');return;}
  if(n.type==='structure'){ui.showStation(n.id);return;}if(n.type==='crossing'){ui.showBridge();return;}if(n.type==='npc'){ui.showPerson(n);return;}
@@ -73,7 +81,7 @@ function interact(n=nearest){
  if(['tree','rock'].includes(n.type)){const error=resourceBlock(state,n);toast(error||'Hold Space to '+(n.type==='tree'?'chop this tree.':'mine this rock.'),error?'error':'');return;}
  const result=gather(state,n);if(result.error)return toast(result.error,'error');toast(rewards(result.reward),'reward');playSound('gather');targetId=null;changed();
 }
-function eat(){const result=consumeBerry(state);if(result.error)toast(result.error,'error');else{toast('A handful of blueberries · +'+result.amount+' stamina');changed();}}
+function eat(){const result=consumeBerry(state);if(result.error)toast(result.error,'error');else{toast('A handful of blueberries · +'+Math.round(result.amount*10)/10+' stamina');changed();}}
 $('#axe-button').onclick=()=>{state.equipped='axe';updateHUD();};$('#pick-button').onclick=()=>{state.equipped='pick';updateHUD();};$('#bag-button').onclick=()=>{ui.cancelPlacement();ui.showBag('items');};$('#kits-button').onclick=()=>{ui.cancelPlacement();ui.showBag('kits');};$('#food-button').onclick=eat;$('#map-button').onclick=()=>{ui.cancelPlacement();ui.showMap();};$('#journal-button').onclick=()=>{ui.cancelPlacement();ui.showJournal();};$('#help-button').onclick=()=>{ui.cancelPlacement();ui.showHelp();};$('#settings-button').onclick=()=>{ui.cancelPlacement();ui.showSettings();};
 document.addEventListener('keydown',e=>{
  if(ui.modal){ui.menuKey(e);return;}if(ui.placementKey(e))return;
@@ -104,17 +112,21 @@ $('#world').addEventListener('contextmenu',e=>e.preventDefault());
 touch=createTouchControls({storage,move:()=>{clickDestination=null;autoHarvestId=null;targetId=null;},reset:()=>{clickDestination=null;autoHarvestId=null;worldPointer=null;},interact:()=>interact(),work:toggleHarvest,next:cycleTarget,zoom:zoomBy});
 let audioContext;
 function playSound(type){if(!state.sound)return;try{audioContext??=new AudioContext();audioContext.resume();const osc=audioContext.createOscillator(),gain=audioContext.createGain(),now=audioContext.currentTime;osc.type=type==='build'?'sine':'triangle';osc.frequency.setValueAtTime(type==='build'?640:type==='chop'?135:type==='mine'?370:800,now);osc.frequency.exponentialRampToValueAtTime(type==='build'?880:70,now+.12);gain.gain.setValueAtTime(.06,now);gain.gain.exponentialRampToValueAtTime(.001,now+.18);osc.connect(gain).connect(audioContext.destination);osc.start(now);osc.stop(now+.2);}catch{}}
-function frame(now){const dt=Math.min((now-last)/1000||0,.04);last=now;saveTimer+=dt;uiTimer+=dt;swingCooldown=Math.max(0,swingCooldown-dt);actionTime=Math.max(0,actionTime-dt);if(!actionTime)renderer.action=null;renderer.walking=false;
+function frame(now){const dt=document.hidden?0:Math.min((now-last)/1000||0,.04);last=now;saveTimer+=dt;uiTimer+=dt;swingCooldown=Math.max(0,swingCooldown-dt);actionTime=Math.max(0,actionTime-dt);if(!actionTime)renderer.action=null;renderer.walking=false;
+ if(state.training&&dt){const trained=tickTraining(state,dt);if(trained){changed();ui.refreshStation();toast('Pull-up complete · maximum stamina '+trained.maxStamina+' / 100');playSound('build');}}
  if(!ui.modal){
+  const previous={...state.player},countingDown=state.race.active?.phase==='countdown';let sprinted=false;
   let dx=(keys.has('d')||keys.has('arrowright')?1:0)-(keys.has('a')||keys.has('arrowleft')?1:0),dy=(keys.has('s')||keys.has('arrowdown')?1:0)-(keys.has('w')||keys.has('arrowup')?1:0);
   let strength=1;if(!dx&&!dy&&(touch.movement.x||touch.movement.y)){dx=touch.movement.x;dy=touch.movement.y;strength=Math.min(1,Math.hypot(dx,dy));}
   if(!dx&&!dy&&clickDestination&&!ui.placement){dx=clickDestination.x-state.player.x;dy=clickDestination.y-state.player.y;if(Math.hypot(dx,dy)<10){clickDestination=null;dx=dy=0;}}
-  if(dx||dy){const length=Math.hypot(dx,dy),speed=(keys.has('shift')||touch.running?290:205)*dt*strength;dx=dx/length*speed;dy=dy/length*speed;const old={...state.player};if(!blocked(state.player.x+dx,state.player.y))state.player.x+=dx;if(!blocked(state.player.x,state.player.y+dy))state.player.y+=dy;renderer.walking=Math.hypot(old.x-state.player.x,old.y-state.player.y)>.1;if(dx)renderer.facing=dx>0?1:-1;if(!renderer.walking)clickDestination=null;}
+  if((dx||dy)&&!countingDown){const length=Math.hypot(dx,dy),motion=movementBudget(state,dt*strength,keys.has('shift')||touch.running);dx=dx/length*motion.distance;dy=dy/length*motion.distance;const old={...state.player};if(!blocked(state.player.x+dx,state.player.y))state.player.x+=dx;if(!blocked(state.player.x,state.player.y+dy))state.player.y+=dy;const moved=Math.hypot(old.x-state.player.x,old.y-state.player.y);sprinted=spendMovement(state,motion,moved);renderer.walking=moved>.1;if(dx)renderer.facing=dx>0?1:-1;if(!renderer.walking)clickDestination=null;}
+  const result=tickRace(state,dt,previous);const walter=nodes.find(n=>n.id==='walter');if(walter)Object.assign(walter,walterPosition(state));
+  if(result){changed(true);ui.showRaceResult(result);}
   const region=state.scene==='bunker'?'bunker':zoneAt(state.player.x,state.player.y);if(region!==state.region){state.region=region;state.visited[region]=true;banner(REGIONS[region].name+' · '+REGIONS[region].description);persist();}
   const entered=visitBunkerRoom(state);if(entered){banner(entered.name+' · '+entered.hint);persist();}
   selectTarget();if(autoHarvestId&&!nearby().some(n=>n.id===autoHarvestId))autoHarvestId=null;
   if((keys.has(' ')||autoHarvestId)&&!ui.placement&&swingCooldown===0){if(!useResource(keys.has(' ')?null:autoHarvestId))autoHarvestId=null;}
-  if(!keys.has(' ')&&!autoHarvestId&&!renderer.action)state.energy=Math.min(100,state.energy+dt*1.4);
+  if(!sprinted&&!countingDown&&!keys.has(' ')&&!autoHarvestId&&!renderer.action&&!ui.modal)recoverStamina(state,dt);
   if(ui.placement)ui.updatePlacement();
  }
  if(uiTimer>.22){uiTimer=0;const ready=tickWorkstations(state);if(ready.length){for(const station of ready)toast(BUILDABLES[station.kind].name+': ready to collect.');persist();ui.refreshStation();}ui.updateTimers();updateHUD();}

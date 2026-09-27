@@ -6,6 +6,9 @@ import {SpriteArt} from './sprite-art.js';
 import {BUNKER,MOONBELL} from './story-data.js';
 import {olgaPosition} from './construction.js';
 import {drawBunkerTerrain,drawBunkerMap} from './story-art.js';
+import {drawRaceCourse} from './activity-art.js';
+import {RACE} from './activity-data.js';
+import {walterPosition} from './activities.js';
 
 export class Renderer extends SpriteArt {
  constructor(canvas,state,nodes){super();Object.assign(this,{canvas,ctx:canvas.getContext('2d'),state,nodes,zoom:1.1,time:0,walking:false,facing:1,action:null,nearest:null,placement:null,particles:[],treeCache:new Map(),tiles:new Map(),reduceMotion:matchMedia('(prefers-reduced-motion: reduce)').matches});new ResizeObserver(()=>this.resize()).observe(canvas);this.resize();}
@@ -16,7 +19,7 @@ export class Renderer extends SpriteArt {
   const sidePanel=this.touchMode&&this.placement&&w>650&&h<=550,compactPhone=this.touchMode&&w<=650&&h<=700;
   const x=clamp(this.state.player.x+(sidePanel?vw*.18:0),vw,area.width);
   const focusY=this.state.player.y+(this.placement&&!sidePanel?90:compactPhone?45:-35);
-  const y=this.state.scene==='bunker'?focusY:clamp(focusY,vh,area.height);
+  const y=this.state.scene==='bunker'||this.state.player.y<250?focusY:clamp(focusY,vh,area.height);
   return {scale,ox:w/2-x*scale,oy:h/2-y*scale,left:x-vw/2,right:x+vw/2,top:y-vh/2,bottom:y+vh/2};
  }
  toWorld(clientX,clientY){const r=this.canvas.getBoundingClientRect(),t=this.transform();return {x:(clientX-r.left-t.ox)/t.scale,y:(clientY-r.top-t.oy)/t.scale};}
@@ -32,7 +35,7 @@ export class Renderer extends SpriteArt {
  draw(dt){this.time+=dt;const c=this.ctx,t=this.transform();c.setTransform(1,0,0,1,0,0);c.fillStyle='#a2b17c';c.fillRect(0,0,this.width,this.height);c.setTransform(t.scale,0,0,t.scale,t.ox,t.oy);
   if(this.state.scene==='bunker'){c.fillStyle='#253a36';c.fillRect(t.left,t.top,t.right-t.left,t.bottom-t.top);drawBunkerTerrain(c,this.state,t);}else{
   for(let x=Math.floor(t.left/512);x<=Math.floor(t.right/512);x++)for(let y=Math.floor(t.top/512);y<=Math.floor(t.bottom/512);y++)c.drawImage(this.tile(x,y),x*512,y*512);
-  this.drawCrossing(c);}
+  this.drawCrossing(c);drawRaceCourse(c,t);}
   const visible=this.nodes.filter(n=>n.x>t.left-180&&n.x<t.right+180&&n.y>t.top-70&&n.y<t.bottom+350);
   for(const n of visible.filter(n=>n.type==='structure'&&BUILDABLES[n.kind].layer==='floor'))drawStructure(this,c,n);
   if(this.nearest){const n=this.nearest;c.strokeStyle='#fff2b9';c.lineWidth=2;c.beginPath();c.ellipse(n.x,n.y+2,n.type==='tree'?18+n.tier*5:28,11,0,0,Math.PI*2);c.stroke();}
@@ -46,6 +49,7 @@ export class Renderer extends SpriteArt {
 }
 export function drawMap(canvas,s,mini=false){if(s.scene==='bunker')return drawBunkerMap(canvas,s,mini);const c=canvas.getContext('2d');const w=canvas.width,h=canvas.height,sx=w/WORLD.width,sy=h/WORLD.height;c.clearRect(0,0,w,h);c.fillStyle='#91a77b';c.fillRect(0,0,w,h);c.save();c.scale(sx,sy);c.lineWidth=65;c.strokeStyle='#d4c291';for(const path of TRAILS){c.beginPath();path.forEach(([x,y],i)=>i?c.lineTo(x,y):c.moveTo(x,y));c.stroke();}c.beginPath();for(let y=0;y<=WORLD.height;y+=70)y?c.lineTo(riverX(y),y):c.moveTo(riverX(y),y);c.lineWidth=180;c.strokeStyle='#507e7d';c.stroke();c.fillStyle=s.bridge?'#e9cc8d':'#b37052';c.fillRect(BRIDGE.x-145,BRIDGE.y-45,290,90);c.restore();
  for(const [id,r]of Object.entries(REGIONS)){const x=r.x*sx,y=r.y*sy;c.fillStyle=s.visited[id]?'#f5ebc3':'#c5cfa7';c.beginPath();c.arc(x,y,mini?2.5:5,0,Math.PI*2);c.fill();if(!mini){c.font='13px Georgia';c.textAlign='center';c.fillStyle='#243f34';c.fillText(r.name,x,y-12);}}
+ const walter=walterPosition(s);c.strokeStyle='#eaddaf';c.lineWidth=mini?2:4;c.beginPath();c.moveTo(RACE.west*sx,RACE.playerY*sy);c.lineTo(RACE.east*sx,RACE.playerY*sy);c.stroke();c.fillStyle='#a45f43';c.fillRect(walter.x*sx-3,walter.y*sy-3,6,6);if(!mini){c.font='12px Georgia';c.textAlign='center';c.fillStyle='#243f34';c.fillText('Walter’s Boundary Dash · 1 wood wager',1700*sx,30);}
  const olga=olgaPosition(s);c.fillStyle='#e8be84';c.beginPath();c.arc(olga.x*sx,olga.y*sy,mini?3:5,0,Math.PI*2);c.fill();if(!mini){c.font='12px Georgia';c.textAlign='center';c.fillStyle='#3d4d3b';c.fillText(s.olga.step===2&&s.olga.active?'Olga · picnic':'Olga',olga.x*sx,olga.y*sy+18);if(s.olga.step===1){c.textAlign='right';c.fillText('Moonbell hollow',MOONBELL.x*sx,MOONBELL.y*sy);}}
  for(const o of s.structures){c.fillStyle=o.kind==='tent'?'#ffe1a2':o.jobs.some(j=>j.status==='ready')?'#ffe893':'#e2d9b2';c.fillRect(o.x*sx-2,o.y*sy-2,4,4);}
  c.fillStyle='#263e34';c.beginPath();c.arc(s.player.x*sx,s.player.y*sy,mini?5:7,0,Math.PI*2);c.fill();c.fillStyle='#fff0b9';c.beginPath();c.arc(s.player.x*sx,s.player.y*sy,mini?3:4,0,Math.PI*2);c.fill();

@@ -3,14 +3,15 @@
 <head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover"><meta name="theme-color" content="#233e34"><title>Luke the Lumberjack · The woods are yours.</title><link rel="icon" href="./favicon.svg"><link rel="stylesheet" href="./styles.css"></head>
 <body>
  <main id="game" aria-label="Luke the Lumberjack">
-  <canvas id="world" tabindex="0" aria-label="Open woodland world. WASD to walk, hold Space to chop or mine, E to interact."></canvas>
+  <canvas id="world" tabindex="0" aria-label="Open woodland world. WASD to walk, Shift to sprint using stamina, hold Space to chop or mine, E to interact."></canvas>
   <div class="vignette" aria-hidden="true"></div>
   <div id="hud" class="hud">
-   <header class="identity glass"><div id="portrait"></div><div><span class="eyebrow">LUKE THE LUMBERJACK</span><strong>The woods are yours.</strong><div class="stamina"><span id="energy-fill"></span></div><small id="energy-label">Stamina 100 / 100</small></div></header>
+   <header class="identity glass"><div id="portrait"></div><div><span class="eyebrow">LUKE THE LUMBERJACK</span><strong>The woods are yours.</strong><div class="stamina"><span id="energy-fill"></span></div><small id="energy-label">Stamina 25 / 25</small></div></header>
    <div class="location"><span id="location-kicker">MASSACHUSETTS · EARLY AUTUMN</span><h1 id="location-name">Pine Hollow</h1><span id="day-label">Day 1</span></div>
    <aside class="map-hud glass"><button id="map-button" aria-label="Open woodland map, M"><canvas id="minimap" width="180" height="126" aria-label="World map with your position"></canvas><span><b>N ↑</b> Map <kbd>M</kbd></span></button></aside>
    <div class="top-actions"><button id="journal-button" title="Journal [J]">Journal <kbd>J</kbd></button><button id="help-button" aria-label="Controls and help, H">? <kbd>H</kbd></button><button id="settings-button" aria-label="Pause and settings">☰</button></div>
    <div id="discovery-banner" class="discovery-banner" hidden></div>
+   <div id="race-hud" class="race-hud glass" hidden><strong id="race-status"></strong><span id="race-instruction"></span><div class="race-track luke-track" aria-label="Luke race progress"><i id="luke-race-progress"></i></div><div class="race-track walter-track" aria-label="Walter race progress"><i id="walter-race-progress"></i></div></div>
    <div id="target-info" class="target-info glass" aria-live="polite" hidden></div>
    <div id="placement-hud" class="placement-hud glass" hidden></div>
    <div class="bottom-hud">
@@ -18,10 +19,10 @@
     <div class="toolbelt glass"><button id="axe-button" title="Equip axe [1]"><kbd>1</kbd><span id="axe-icon"></span><span class="slot-name">Axe</span></button><button id="pick-button" title="Equip pickaxe [2]"><kbd>2</kbd><span id="pick-icon"></span><span class="slot-name">Pickaxe</span></button><span class="belt-divider"></span><button id="bag-button" title="Backpack [B]"><kbd>B</kbd><span class="bag-symbol">▣</span><span class="slot-name">Backpack</span></button><button id="kits-button" title="Packed building kits [V]"><kbd>V</kbd><span id="kit-icon"></span><span class="slot-name">Packed kits</span></button><button id="food-button" title="Eat berries [F]"><kbd>F</kbd><span id="berry-icon"></span><span id="berry-count" class="slot-name">0</span></button></div>
     <div class="equipped-label glass"><span id="equipped-name">Rusty hand axe</span><small id="save-status">Saved locally</small></div>
    </div>
-   <div class="controls"><span><kbd>W A S D</kbd> walk</span><span><kbd>SPACE</kbd> hold to chop / mine</span><span><kbd>E</kbd> interact</span><span><kbd>TAB</kbd> change target</span><span><kbd>− +</kbd> zoom</span></div>
+   <div class="controls"><span><kbd>W A S D</kbd> walk</span><span><kbd>SHIFT</kbd> sprint · uses stamina</span><span><kbd>SPACE</kbd> hold to chop / mine</span><span><kbd>E</kbd> interact</span><span><kbd>TAB</kbd> change target</span><span><kbd>− +</kbd> zoom</span></div>
    <div class="touch-controls" aria-label="Touch game controls">
     <button id="touch-stick" class="touch-stick" aria-label="Move Luke: hold and slide in any direction"><span class="stick-arrows" aria-hidden="true">↑<br>← &nbsp; →<br>↓</span><span class="stick-knob" aria-hidden="true"></span></button>
-    <div class="touch-actions"><button id="touch-strike" class="touch-primary" aria-pressed="false">Work</button><button id="touch-use" class="touch-primary">Interact</button><button id="touch-next" aria-label="Select next nearby target">Next target</button><button id="touch-run" aria-pressed="false">Run</button></div>
+    <div class="touch-actions"><button id="touch-strike" class="touch-primary" aria-pressed="false">Work</button><button id="touch-use" class="touch-primary">Interact</button><button id="touch-next" aria-label="Select next nearby target">Next target</button><button id="touch-run" aria-pressed="false" title="Sprint · uses 8 stamina per second">Run</button></div>
     <div class="touch-zoom"><button id="zoom-out" aria-label="Zoom out">−</button><button id="zoom-in" aria-label="Zoom in">+</button></div>
    </div>
   </div>

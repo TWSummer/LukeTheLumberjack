@@ -1,0 +1,24 @@
+<!doctype html><html lang="en"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Crafting and activities · isolated playtest</title>
+<style>body{margin:0;background:#203b30;color:#f2edd4;font:14px system-ui}header{padding:12px;display:flex;gap:10px;align-items:center;flex-wrap:wrap}button,select{font:inherit;padding:10px}iframe{border:0;width:100%;height:calc(100dvh - 150px);display:block}#status{padding:8px;font-size:12px}</style>
+<header><b>Disposable localhost:3001 only</b><label>Scenario <select id="scene"><option value="craft">Workbench materials</option><option value="bar">Pull-up bar</option><option value="flower">Wild swiftness flower</option><option value="garden">Garden cutting</option><option value="normal">Walter · 100 stamina</option><option value="swift">Walter · 100 stamina + flower</option><option value="untrained">Walter · 25 stamina + flower</option></select></label><label><input id="touch" type="checkbox"> Touch controls</label><button id="load">Load embedded</button><button id="full">Load full screen</button><button data-key="e">Interact E</button><button data-key="d">Hold Shift+D 14s</button><button data-key="a">Hold Shift+A 14s</button></header><div id="status">Choose a scenario. No port-3000 save is touched.</div><iframe title="Activity test game"></iframe>
+<script type="module">
+import {freshState,SAVE_KEY,grant} from '../src/state.js';
+import {CAMP,NATURAL_NODES} from '../src/world.js';
+import {RACE,SWIFTNESS} from '../src/activity-data.js';
+const frame=document.querySelector('iframe'),status=document.querySelector('#status');
+if(location.hostname!=='localhost'||location.port!=='3001'){document.querySelector('header').textContent='This fixture only runs on localhost:3001.';}else{
+ async function seed(full){
+  await new Promise(resolve=>{frame.onload=resolve;frame.src='about:blank';});frame.onload=null;
+  const s=freshState(),scene=document.querySelector('#scene').value;grant(s,{logs:123,stone:100,ingots:20,fiber:100,berries:10});
+  const kind=scene==='bar'?'pullupbar':scene==='garden'?'planter':'workbench';const o={id:'test-station',kind,x:CAMP.x+300,y:CAMP.y+200,rotation:0,jobs:[]};s.structures.push(o);s.player={x:o.x,y:o.y+48};s.day=2;
+  if(scene==='flower')s.player={x:SWIFTNESS.x,y:SWIFTNESS.y+60};
+  if(scene==='garden'){s.inventory.swiftness=1;s.swiftnessFound=true;}
+  if(['normal','swift','untrained'].includes(scene)){s.player={x:RACE.west,y:RACE.playerY};s.maxStamina=scene==='untrained'?25:100;s.energy=s.maxStamina;if(scene!=='normal'){o.kind='planter';o.plant='swiftness';s.swiftnessFound=true;}}
+  for(const n of NATURAL_NODES)if(['tree','rock','sap'].includes(n.type)&&Math.hypot(n.x-s.player.x,n.y-s.player.y)<200)s.depleted[n.id]=true;
+  localStorage.setItem(SAVE_KEY,JSON.stringify(s));localStorage.setItem('luke-touch-controls',document.querySelector('#touch').checked?'on':'off');
+  if(full)location.href='../';else{frame.src='/';status.textContent=scene+' loaded';}
+ }
+ document.querySelector('#load').onclick=()=>seed(false);document.querySelector('#full').onclick=()=>seed(true);
+ document.querySelectorAll('[data-key]').forEach(b=>b.onclick=()=>{const key=b.dataset.key,doc=frame.contentDocument;doc.querySelector('#world')?.focus();if(key!=='e')doc.dispatchEvent(new KeyboardEvent('keydown',{key:'Shift',bubbles:true}));doc.dispatchEvent(new KeyboardEvent('keydown',{key,bubbles:true}));status.textContent='Holding '+key;setTimeout(()=>{doc.dispatchEvent(new KeyboardEvent('keyup',{key,bubbles:true}));doc.dispatchEvent(new KeyboardEvent('keyup',{key:'Shift',bubbles:true}));status.textContent='Released '+key;},key==='e'?70:14000);});
+}
+</script></html>

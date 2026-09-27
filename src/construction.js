@@ -1,8 +1,10 @@
 import {RECIPES} from './data.js';
 import {WORLD,NATURAL_NODES,BRIDGE,isWater} from './world.js';
 import {BUNKER_NODES,OLGA_HOME,PICNIC} from './story-data.js';
+import {RACE,SWIFTNESS,RACE_MARKERS,walterPosition} from './activity-data.js';
 
 export const BUILDABLES={
+ pullupbar:{name:'Woodland pull-up bar',icon:'pullupbar',size:[64,24],cost:{logs:2,ingots:1},desc:'Train here: each three-second pull-up costs 3 stamina and adds 1 maximum stamina, up to 100.'},
  lantern:{name:'Bunker glow lantern',icon:'glowcaps',size:[20,20],cost:{scrap:1,copper:2,glowcaps:1},desc:'A gentle pool of light, grown from bunker lantern caps. Arrange it in your home or garden.'},
  tent:{name:'Luke’s tent',icon:'cabin',size:[150,80],station:true,fixed:true,desc:'A borrowed tent and a few hand tools. Assemble your first workbench here.'},
  workbench:{name:'Woodland workbench',icon:'workbench',size:[64,32],station:true,cost:{logs:6,stone:4,fiber:2},stations:['tent','workbench'],desc:'Make planks, cord, a pickaxe, house pieces, and more workstations.'},
@@ -19,7 +21,7 @@ export const BUILDABLES={
  bed:{name:'Woodland bed',icon:'bed',size:[32,40],cost:{planks:4,fiber:6,rope:1},desc:'Sleep wherever you choose to settle.'},
  fence:{name:'Split-rail fence',icon:'fence',size:[48,8],cost:{logs:2},desc:'Mark a garden or frame a yard.'},
  campfire:{name:'Stone-ring campfire',icon:'kiln',size:[36,32],cost:{stone:4,logs:2},stations:['tent','workbench'],desc:'Rest beside a fire deep in the woods.'},
- planter:{name:'Woodland planter',icon:'fiber',size:[40,24],cost:{planks:2,fiber:2},desc:'Plant a moonbell cutting here with E. Moving keeps the flower; packing returns its cutting.'},
+ planter:{name:'Woodland planter',icon:'fiber',size:[40,24],cost:{planks:2,fiber:2},desc:'Grow a moonbell or a flower of swiftness. Moving keeps the flower; packing returns its cutting.'},
  festival:{name:'The long table',icon:'table',size:[96,40],cost:{planks:24,ingots:4,sap:8},desc:'A place for every friend you make. Gather when you’ve helped all three neighbors.'}
 };
 export const ALL_RECIPES=[...RECIPES,...Object.entries(BUILDABLES).filter(([,d])=>!d.fixed).map(([kind,d])=>({id:'kit-'+kind,name:d.name+' kit',group:d.station?'workstations':'house',icon:d.icon,stations:d.stations||['workbench'],cost:d.cost,kit:kind,duration:d.station?8:2,desc:d.desc}))];
@@ -34,16 +36,18 @@ export function nearStructure(s,o){if(!o||s.scene==='bunker')return false;const 
 export function naturalRadius(n){return n.type==='tree'?12+n.tier*6:n.type==='rock'?21+n.tier*7:['mansion','ruin','cottage'].includes(n.type)?105:n.type==='bunker'?85:n.type==='workshop'?50:n.type==='sap'?20:20;}
 export function naturalBounds(n){const r=naturalRadius(n);return {left:n.x-r,right:n.x+r,top:n.y-r,bottom:n.y+r};}
 export function olgaPosition(s){const o=s.olga;if(o?.step===2&&o.active)return {...PICNIC,x:PICNIC.x+36,y:PICNIC.y+30};if(o?.step===4){const bed=s.structures.find(b=>b.id===o.bedId);return bed?{x:bed.x+48,y:bed.y+48}:o.home||OLGA_HOME;}return OLGA_HOME;}
-export function worldNodes(s){if(s.scene==='bunker')return BUNKER_NODES;return [...NATURAL_NODES.filter(n=>!RESOURCE_TYPES.has(n.type)||!s.structures.some(o=>intersects(bounds(o),naturalBounds(n)))),{id:'olga',type:'npc',person:'olga',...olgaPosition(s)},...s.structures.map(o=>({...o,type:'structure',structureId:o.id}))];}
+export function worldNodes(s){if(s.scene==='bunker')return BUNKER_NODES;return [...NATURAL_NODES.filter(n=>!RESOURCE_TYPES.has(n.type)||!s.structures.some(o=>intersects(bounds(o),naturalBounds(n)))),SWIFTNESS,...RACE_MARKERS,{id:'walter',type:'npc',person:'walter',...walterPosition(s)},{id:'olga',type:'npc',person:'olga',...olgaPosition(s)},...s.structures.map(o=>({...o,type:'structure',structureId:o.id}))];}
 export function placementBlock(s,kind,x,y,rotation=0,ignoreId=null){
  if(s.scene==='bunker')return 'Gerald lives here. Build in the woods above.';
  const d=BUILDABLES[kind];if(!d||d.fixed)return 'Choose a packed building kit.';
  if(![x,y,rotation].every(Number.isFinite))return 'Choose solid ground.';
  if(Math.hypot(x-s.player.x,y-s.player.y)>310)return 'Walk closer to this spot.';
  const b=bounds({kind,x,y,rotation});
+ if(b.right>RACE.west-60&&b.left<RACE.east+60&&b.top<RACE.bottom+18&&b.bottom>RACE.top-18)return 'Keep Walter’s race lane clear.';
  if(b.left<50||b.top<50||b.right>WORLD.width-50||b.bottom>WORLD.height-50)return 'Leave room at the edge of the woods.';
  for(let xx=b.left;xx<=b.right;xx+=8)for(let yy=b.top;yy<=b.bottom;yy+=8)if(isWater(xx,yy))return 'Choose dry ground.';
  if(Math.abs(x-BRIDGE.x)<200&&Math.abs(y-BRIDGE.y)<105)return 'Keep the crossing clear.';
+ if(Math.hypot(x-SWIFTNESS.x,y-SWIFTNESS.y)<70)return 'Leave room for the wild swiftness flower.';
  for(const n of worldNodes(s)){
   if(n.type==='structure'||n.type==='crossing'||s.depleted[n.id])continue;
   if(intersects(b,naturalBounds(n),3))return RESOURCE_TYPES.has(n.type)?'Clear this resource first.':'Leave room around people and landmarks.';

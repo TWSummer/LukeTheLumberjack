@@ -1,5 +1,6 @@
 import {BUILDABLES,bounds,pointInBounds} from './construction.js';
 import {drawMoonbell} from './story-art.js';
+import {drawSwiftness} from './activity-art.js';
 const poly=(c,points,color)=>{c.fillStyle=color;c.beginPath();points.forEach(([x,y],i)=>i?c.lineTo(x,y):c.moveTo(x,y));c.closePath();c.fill();};
 const rect=(c,x,y,w,h,color)=>{c.fillStyle=color;c.fillRect(Math.round(x),Math.round(y),w,h);};
 function prism(c,w,h,z,top='#bda070',side='#927344'){
@@ -43,12 +44,21 @@ export function drawStructure(renderer,c,node,preview=false){
         else{rect(c,-3,-44,6,20,'#a9c4ad');rect(c,-3,-35,6,2,'#d4b67c');}
       }
     }
+  }else if(o.kind==='pullupbar'){
+    const w=vertical?18:60,h=vertical?26:0;
+    for(const [x,y]of [[-w/2,-h],[w/2,h]]){rect(c,x-4,y-67,8,70,'#896d45');rect(c,x-2,y-66,3,63,'#b5945e');rect(c,x-8,y,16,5,'#6a754f');}
+    c.strokeStyle='#899b96';c.lineWidth=6;c.beginPath();c.moveTo(-w/2,-h-66);c.lineTo(w/2,h-66);c.stroke();
+    c.strokeStyle='#c5d0b9';c.lineWidth=2;c.beginPath();c.moveTo(-w/2,-h-69);c.lineTo(w/2,h-69);c.stroke();
+    if(renderer.state.training?.id===o.id)renderer.label(c,0,-90,'PULL… HOLD…','#f4dc9f');
   }else if(o.kind==='bed'){
+
     prism(c,b.w,b.h,10,'#d4bb83');
     if(!vertical){rect(c,-13,-31,26,13,'#e7dec0');rect(c,-13,-16,26,27,'#8f644b');rect(c,-13,4,26,6,'#bb9168');}
     else{rect(c,-22,-23,12,27,'#e7dec0');rect(c,-8,-23,29,27,'#8f644b');rect(c,15,-23,6,27,'#bb9168');}
   }else if(o.kind==='lantern'){
     const glow=c.createRadialGradient(0,-16,0,0,-16,85);glow.addColorStop(0,'#e4f3b87a');glow.addColorStop(1,'#e4f3b800');c.fillStyle=glow;c.fillRect(-85,-101,170,170);rect(c,-9,-2,18,5,'#686b4f');rect(c,-6,-28,12,25,'#b8daba');rect(c,-9,-31,18,5,'#927b51');rect(c,-9,-5,18,4,'#927b51');rect(c,-1,-26,2,20,'#f1ebba');
+  }else if(o.kind==='planter'&&o.plant==='swiftness'){
+    prism(c,b.w,b.h,14,'#675d3c','#9e8250');drawSwiftness(c,0,-14);
   }else if(o.kind==='planter'&&o.plant==='moonbell'){
     prism(c,b.w,b.h,14,'#675d3c','#9e8250');drawMoonbell(c,0,-14);
   }else if(o.kind==='planter'){

@@ -58,7 +58,7 @@ export function createTouchControls(hooks){
   $('touch-strike').textContent=working?'Stop':resource?(tool==='axe'?'Chop':'Mine'):'Work';
   $('touch-strike').setAttribute('aria-pressed',String(!!working));
   $('touch-use').disabled=!target||!!resource;
-  $('touch-use').textContent=target?.type==='npc'?'Talk':target?.type==='structure'?'Use':target&&['loose','fiber','berries','mushrooms','sap','growtray','bunkergarden','rareplant'].includes(target.type)?'Gather':'Interact';
+  $('touch-use').textContent=target?.type==='npc'?'Talk':target?.type==='structure'?'Use':target&&['loose','fiber','berries','mushrooms','sap','growtray','bunkergarden','rareplant','swiftness'].includes(target.type)?'Gather':'Interact';
  }
  apply();
  return {get enabled(){return enabled;},get mode(){return mode;},get movement(){return movement;},get running(){return running;},setMode,reset,update};

@@ -1,4 +1,5 @@
 export const ITEMS={
+ swiftness:{name:'Flower of swiftness cutting',short:'Swiftness'},
  crowbar:{name:'Forged crowbar',short:'Crowbar'},moonbell:{name:'Moonbell cutting',short:'Moonbell'},scrap:{name:'Machine scrap',short:'Scrap'},copper:{name:'Copper wire',short:'Copper'},glowcaps:{name:'Lantern-cap cultures',short:'Lantern caps'},
  logs:{name:'Wood',short:'Wood'},stone:{name:'Stone',short:'Stone'},fiber:{name:'Wild fiber',short:'Fiber'},berries:{name:'Blueberries',short:'Berries'},mushrooms:{name:'Chanterelles',short:'Mushrooms'},ore:{name:'Iron ore',short:'Ore'},planks:{name:'Timber planks',short:'Planks'},rope:{name:'Twisted cord',short:'Cord'},ingots:{name:'Iron ingots',short:'Iron'},coal:{name:'Charcoal',short:'Coal'},steel:{name:'Steel',short:'Steel'},hardwood:{name:'Heartwood',short:'Heartwood'},crystal:{name:'Quartz crystals',short:'Quartz'},sap:{name:'Maple sap',short:'Sap'},relic:{name:'Woodland keepsakes',short:'Keepsakes'},tap:{name:'Maple tapping kit',short:'Tap kit'}
 };
@@ -39,6 +40,7 @@ export const REGIONS={
  mill:{name:'The Forgotten Mill',description:'Ancient timber and a millwright’s lost designs.',x:4820,y:1050,color:'#91a582'}
 };
 export const PEOPLE={
+ walter:{name:'Walter “Lightning” Whitcomb',role:'World’s fastest 80-year-old · north boundary track',shirt:'#af7050',hair:'#e0dfd0'},
  olga:{name:'Olga',role:'Gardener · the lost orchard',shirt:'#6b82a0',hair:'#e5bf65'},
  hermit:{name:'Gerald “Abandoned” Moss',role:'Resident hermit · involuntary tour guide',shirt:'#82775b',hair:'#c4c2a5'},
  everett:{name:'Everett Whitmore',role:'Neighbor. Unfortunately.',shirt:'#546d61',hair:'#746450'},
@@ -107,6 +109,8 @@ export function itemIcon(type) {
   if(type==='crowbar')art='<path d="M9 30 25 9l-1-5h-5l-4 5m-6 21-4 1" fill="none" stroke="#738b8e" stroke-width="5"/>';
   if(type==='moonbell'||type==='glowcaps')art='<path d="M18 31V12M18 26l-9-7m9 3 9-7" stroke="#658156" stroke-width="3"/><path d="m7 15 4-8 7 3 7-5 6 10-8 4-6-4-4 5Z" fill="#b6cdea"/><circle cx="18" cy="13" r="4" fill="#f2e3b1"/>';
   if(type==='scrap'||type==='copper')art='<path d="m6 27 4-19 15-3 5 16-10 10Z" fill="#849b91"/><path d="m10 26 14-12-5-4-6 9 13 7" fill="none" stroke="#ca9662" stroke-width="4"/>';
+  if(type==='pullupbar')art='<path d="M7 32V9m22 23V9" stroke="#9b764c" stroke-width="6"/><path d="M4 7h28" stroke="#a8b9b1" stroke-width="5"/>';
+  if(type==='swiftness')art='<path d="M18 32V12m0 11-9-7m9 3 8-7" stroke="#61844f" stroke-width="3"/><path d="m18 3 4 8 9-3-5 8 6 5-10 1-3 8-3-8-10-2 8-4-3-8 7 3Z" fill="#e6b956"/><circle cx="19" cy="16" r="4" fill="#fff0ad"/>';
   return `<span class="item-icon"><svg viewBox="0 0 36 36" aria-hidden="true">${art}</svg></span>`;
 }
 export function portraitSVG(person='luke') {

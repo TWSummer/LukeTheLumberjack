@@ -20,7 +20,8 @@ function accessible(s,points,n){const before=s.player;const yes=points.some(([x,
 test('existing version-4 saves retain inventory, tools, home, jobs, quests, location and previous bunker loot',()=>{
  const storage=memory();storage.setItem(SAVE_KEY,legacyJSON);const before=JSON.parse(legacyJSON),s=loadState(storage);
  assert.equal(SAVE_KEY,'luke-open-world-v4');assert.equal(s.version,4);
- for(const key of Object.keys(before).filter(k=>k!=='bunker'))assert.deepEqual(s[key],before[key],key+' preserved');
+ for(const key of Object.keys(before).filter(k=>!['bunker','energy','inventory'].includes(k)))assert.deepEqual(s[key],before[key],key+' preserved');
+ assert.equal(s.energy,before.energy/4);assert.equal(s.maxStamina,25);for(const [k,v]of Object.entries(before.inventory))assert.equal(s.inventory[k],v);assert.equal(s.inventory.swiftness,0);
  for(const [k,v]of Object.entries(before.bunker))assert.deepEqual(s.bunker[k],v,k+' preserved');
  assert.equal(s.bunker.expansion,1);assert.deepEqual(s.bunker.cleared,{});assert.equal(s.bunker.power,false);assert.ok(!terrainBlocked(s,s.player.x,s.player.y));
  assert.equal(storage.getItem(SAVE_KEY+'-before-bunker-expansion'),legacyJSON);assert.equal(storage.getItem(SAVE_KEY),legacyJSON);
